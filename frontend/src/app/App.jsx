@@ -1,11 +1,13 @@
-import React from 'react'
-import Register from '../features/auth/pages/Register'
+import React from "react";
+import Register from "../features/auth/pages/Register";
+import { RouterProvider } from "react-router";
+import { routes } from "./app.routes";
 const App = () => {
   return (
-    <div>
-      <Register />
-    </div>
-  )
-}
+    <>
+      <RouterProvider router={routes} />
+    </>
+  );
+};
 
-export default App
+export default App;
