@@ -8,7 +8,7 @@ import Login from "../features/auth/pages/Login";
 export const routes = createBrowserRouter([
     {
         path: "/",
-        element: <h1>Home</h1>
+        element: <div className="h-screen w-full bg-cyan-950"><h1>Home</h1></div>
     },
     {
         path: "/register",

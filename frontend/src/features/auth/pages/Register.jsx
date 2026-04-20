@@ -63,7 +63,7 @@ const Register = () => {
       </div>
 
       {/* RIGHT FORM */}
-      <div className="w-full md:w-1/2 h-full flex items-center justify-center px-6">
+      <div className="w-full md:w-1/2 h-auto flex items-center justify-center ">
         <div className="w-full max-w-md">
           {/* Top text */}
           <p className="text-yellow-400 text-xs tracking-widest mb-3">
@@ -71,11 +71,11 @@ const Register = () => {
           </p>
 
           {/* Heading */}
-          <h1 className="text-white text-4xl font-bold mb-10">
+          <h1 className="text-white text-4xl font-bold mb-4">
             Elevate Your Style
           </h1>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-8">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {/* Full Name */}
             <div>
               <label className="text-gray-400 text-sm">Full Name</label>
@@ -151,17 +151,27 @@ const Register = () => {
               />
               Register as Seller
             </label>
+            <div>
+              <button className="w-auto h-10 bg-amber-400 py-2 px-4 rounded-3xl">
+                <a
+                  href="/api/auth/google"
+                  className="text-sm font-semibold text-black cursor-pointer"
+                >
+                  Continue with Google
+                </a>
+              </button>
+            </div>
 
             {/* Button */}
             <button
               type="submit"
-              className="mt-4 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-md transition shadow-lg shadow-yellow-500/20"
+              className="mt-3 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-md transition shadow-lg shadow-yellow-500/20"
             >
               Sign Up
             </button>
 
             {/* Footer */}
-            <p className="text-gray-400 text-sm text-center mt-4">
+            <p className="text-gray-400 text-sm text-center">
               Already have an account?{" "}
               <span className="text-yellow-400 cursor-pointer hover:underline">
                 <Link to="/login">Login</Link>
