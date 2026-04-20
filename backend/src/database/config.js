@@ -22,4 +22,5 @@ export const config = {
   JWT_SECRET_KEY: process.env.JWT_SECRET_KEY,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  NODE_ENV: process.env.NODE_ENV || "development",
 };

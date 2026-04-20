@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Link } from "react-router-dom";
 import { useAuth } from "../hook/useAuth";
+import GoogleButton from "../components/GoogleButton";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -107,6 +108,9 @@ const Login = () => {
             >
               Sign In
             </button>
+
+            {/* Google Button */}
+            <GoogleButton />
 
             {/* Footer */}
             <p className="text-gray-400 text-sm text-center mt-4">

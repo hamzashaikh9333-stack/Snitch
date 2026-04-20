@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../hook/useAuth";
 import { useNavigate } from "react-router";
 import { Link } from "react-router-dom";
+import GoogleButton from "../components/GoogleButton";
 
 const Register = () => {
   const { handleRegister } = useAuth();
@@ -141,7 +142,7 @@ const Register = () => {
             </div>
 
             {/* Checkbox */}
-            <label className="flex items-center gap-3 text-gray-300 text-sm">
+            <label className="flex items-center gap-3 text-gray-300 cursor-pointer text-sm">
               <input
                 type="checkbox"
                 name="isSeller"
@@ -151,24 +152,16 @@ const Register = () => {
               />
               Register as Seller
             </label>
-            <div>
-              <button className="w-auto h-10 bg-amber-400 py-2 px-4 rounded-3xl">
-                <a
-                  href="/api/auth/google"
-                  className="text-sm font-semibold text-black cursor-pointer"
-                >
-                  Continue with Google
-                </a>
-              </button>
-            </div>
+            
 
             {/* Button */}
             <button
               type="submit"
-              className="mt-3 bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-md transition shadow-lg shadow-yellow-500/20"
+              className="mt-3 cursor-pointer bg-yellow-400 hover:bg-yellow-500 text-black font-semibold py-3 rounded-md transition shadow-lg shadow-yellow-500/20"
             >
               Sign Up
             </button>
+            <GoogleButton />
 
             {/* Footer */}
             <p className="text-gray-400 text-sm text-center">
