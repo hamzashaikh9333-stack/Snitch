@@ -86,7 +86,7 @@ const Register = () => {
                 placeholder=""
                 value={formData.fullname}
                 onChange={handleChange}
-                className="w-full mt-2 bg-transparent border-b border-gray-600 text-white py-2 outline-none focus:border-yellow-400 transition"
+                className="w-full mt-2 bg-transparent border-b border-gray-600 text-white px-1 py-2 outline-none focus:border-yellow-400 transition"
               />
             </div>
 
@@ -99,7 +99,7 @@ const Register = () => {
                 placeholder=""
                 value={formData.contact}
                 onChange={handleChange}
-                className="w-full mt-2 bg-transparent border-b border-gray-600 text-white py-2 outline-none focus:border-yellow-400 transition"
+                className="w-full mt-2 bg-transparent border-b border-gray-600 text-white px-1 py-2 outline-none focus:border-yellow-400 transition"
               />
             </div>
 
@@ -112,7 +112,7 @@ const Register = () => {
                 placeholder=""
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full mt-2 bg-transparent border-b border-gray-600 text-white py-2 outline-none focus:border-yellow-400 transition"
+                className="w-full mt-2 bg-transparent border-b border-gray-600 text-white px-1 py-2 outline-none focus:border-yellow-400 transition"
               />
             </div>
 
@@ -127,7 +127,7 @@ const Register = () => {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full bg-transparent border-b border-gray-600 text-white py-3 pr-10 pl-1 outline-none focus:border-yellow-400 transition"
+                  className="w-full bg-transparent border-b border-gray-600 text-white px-1 py-3 pr-10 pl-1 outline-none focus:border-yellow-400 transition"
                 />
 
                 {/* Eye Button */}
@@ -142,17 +142,16 @@ const Register = () => {
             </div>
 
             {/* Checkbox */}
-            <label className="flex items-center gap-3 text-gray-300 cursor-pointer text-sm">
+            <label className="flex items-center gap-3 text-gray-300 text-sm">
               <input
                 type="checkbox"
                 name="isSeller"
                 checked={formData.isSeller}
                 onChange={handleChange}
-                className="accent-yellow-400"
+                className="accent-yellow-400 cursor-pointer"
               />
               Register as Seller
             </label>
-            
 
             {/* Button */}
             <button
