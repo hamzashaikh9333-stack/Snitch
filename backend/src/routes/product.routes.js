@@ -4,6 +4,7 @@ import multer from "multer";
 import {
   createProduct,
   getAllProducts,
+  getProductDetails,
   getSellerProducts,
 } from "../controllers/product.controller.js";
 import { createProductValidator } from "../validator/product.validator.js";
@@ -28,5 +29,7 @@ productRouter.post(
 productRouter.get("/seller", authenticateSeller, getSellerProducts);
 
 productRouter.get("/", getAllProducts);
+
+productRouter.get("/detail/:id", getProductDetails);
 
 export default productRouter;

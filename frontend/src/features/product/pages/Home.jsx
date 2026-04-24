@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useProduct } from "../hooks/useProduct";
 import { useNavigate } from "react-router-dom";
@@ -6,26 +6,50 @@ import { motion } from "framer-motion";
 
 const Home = () => {
   const products = useSelector((state) => state.product.products);
-  const user = useSelector((state) => state.auth.user); // adjust if needed
+  const user = useSelector((state) => state.auth.user);
   const { handleGetAllProducts } = useProduct();
 
   const [previewImage, setPreviewImage] = useState(null);
+  const [hoveredId, setHoveredId] = useState(null);
+  const [showOverlayId, setShowOverlayId] = useState(null);
+  const hoverTimeout = useRef(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
     handleGetAllProducts();
   }, []);
 
+  // 🔥 hover logic with delay (FIXED)
+  const handleMouseEnter = (id) => {
+    setHoveredId(id);
+
+    if (hoverTimeout.current) {
+      clearTimeout(hoverTimeout.current);
+    }
+
+    hoverTimeout.current = setTimeout(() => {
+      setShowOverlayId(id);
+    }, 2000);
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredId(null);
+    setShowOverlayId(null);
+
+    if (hoverTimeout.current) {
+      clearTimeout(hoverTimeout.current);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* 🔝 NAVBAR */}
+      {/* NAVBAR */}
       <div className="flex items-center justify-between px-4 md:px-10 py-5 border-b border-gray-800">
-        {/* LOGO */}
         <h1 className="text-xl md:text-2xl font-semibold tracking-wide text-yellow-400">
           SNITCH.
         </h1>
 
-        {/* RIGHT SIDE */}
         <div>
           {user ? (
             <div className="flex items-center gap-3">
@@ -47,7 +71,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* 🔥 HEADER */}
+      {/* HEADER */}
       <div className="px-4 md:px-10 py-10">
         <p className="text-yellow-400 text-xs tracking-widest mb-2">DISCOVER</p>
 
@@ -61,7 +85,7 @@ const Home = () => {
         </p>
       </div>
 
-      {/* 🛍 PRODUCT GRID */}
+      {/* PRODUCT GRID */}
       <div className="px-4 md:px-10 pb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
         {products?.map((product, index) => (
           <motion.div
@@ -70,23 +94,57 @@ const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
             whileHover={{ y: -6 }}
-            className="relative group rounded-xl p-[1px] overflow-hidden"
+            className="relative group rounded-xl p-[3px] overflow-hidden"
           >
-            {/* 🔥 GLOW BORDER */}
+            {/* 🔥 GLOW BORDER FIXED */}
             <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none">
-              <div className="w-full h-full rounded-xl bg-[linear-gradient(90deg,#facc15,#a855f7,#ef4444,#facc15)] animate-border"></div>
+              <div className="absolute inset-0 rounded-xl bg-[linear-gradient(90deg,#facc15,#a855f7,#ef4444,#facc15)] animate-border"></div>
+              <div className="absolute inset-[3px] bg-black rounded-xl"></div>
             </div>
 
             {/* CARD */}
-            <div className="bg-black rounded-xl overflow-hidden relative z-10 border border-gray-800 group-hover:border-yellow-400 transition">
+            <div
+              className="bg-black rounded-xl overflow-hidden relative z-10 border border-gray-800 group-hover:border-yellow-400 transition"
+              onClick={() => navigate(`/product/${product._id}`)}
+              onMouseEnter={() => handleMouseEnter(product._id)}
+              onMouseLeave={handleMouseLeave}
+            >
               {/* IMAGE */}
-              <div className="w-full h-52 flex items-center justify-center bg-black overflow-hidden">
+              <div className="w-full h-52 flex items-center justify-center bg-black overflow-hidden relative">
                 <img
                   src={product.images?.[0]?.url}
                   alt={product.title}
-                  onClick={() => setPreviewImage(product.images?.[0]?.url)}
-                  className="max-h-full max-w-full object-contain cursor-pointer transition duration-500 group-hover:scale-105"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewImage(product.images?.[0]?.url);
+                  }}
+                  className={`max-h-full max-w-full object-contain cursor-pointer transition-all duration-500 ${
+                    showOverlayId === product._id ? "scale-105" : ""
+                  }`}
                 />
+
+                {/* 🔥 OVERLAY (single, fixed) */}
+                {showOverlayId === product._id && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.4 }}
+                    className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                  >
+                    <motion.button
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/product/${product._id}`);
+                      }}
+                      className="bg-yellow-400 text-black px-6 py-3 rounded-md font-semibold shadow-lg hover:bg-yellow-500 transition"
+                    >
+                      Buy Now
+                    </motion.button>
+                  </motion.div>
+                )}
               </div>
 
               {/* CONTENT */}
@@ -108,7 +166,7 @@ const Home = () => {
         ))}
       </div>
 
-      {/* 🖼 IMAGE MODAL */}
+      {/* IMAGE MODAL */}
       {previewImage && (
         <div
           className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
@@ -124,20 +182,20 @@ const Home = () => {
         </div>
       )}
 
-      {/* ✨ BORDER ANIMATION */}
+      {/* BORDER ANIMATION */}
       <style>
         {`
           @keyframes borderRun {
             0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
+            100% { background-position: 300% 50%; }
           }
 
           .animate-border {
-            background-size: 200% 200%;
-            animation: borderRun 3s linear infinite;
-            filter: blur(6px);
-            opacity: 0.7;
-          }
+            background-size: 300% 300%;
+            animation: borderRun 4s linear infinite;
+            filter: blur(2px);   
+            opacity: 1;
+}
         `}
       </style>
     </div>
