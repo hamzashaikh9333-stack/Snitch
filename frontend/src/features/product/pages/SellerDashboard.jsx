@@ -114,7 +114,10 @@ const SellerDashboard = () => {
 
                 {/* ACTIONS */}
                 <div className="flex gap-2 mt-4">
-                  <button className="flex-1 text-xs md:text-sm bg-gray-800 hover:bg-yellow-400 hover:text-black py-2 rounded-md transition">
+                  <button
+                    onClick={() => navigate(`/seller/product/${product._id}`)}
+                    className="flex-1 text-xs md:text-sm bg-gray-800 hover:bg-yellow-400 hover:text-black py-2 rounded-md transition"
+                  >
                     Edit
                   </button>
                   <button className="flex-1 text-xs md:text-sm bg-gray-800 hover:bg-red-500 py-2 rounded-md transition">
