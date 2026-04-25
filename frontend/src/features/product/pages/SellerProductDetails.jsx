@@ -13,6 +13,7 @@ const SellerProductDetails = () => {
   const [variants, setVariants] = useState([]);
   const [products, setProducts] = useState([]);
   const [images, setImages] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   // ================= FETCH =================
   useEffect(() => {
@@ -21,8 +22,8 @@ const SellerProductDetails = () => {
       const finalData = data?.product || data;
 
       setProduct(finalData);
+      setSelectedImage(finalData?.images?.[0]?.url || null);
       setVariants(finalData?.variants || []);
-      setImages(finalData?.images || []);
 
       const sellerData = await handleGetSellerProducts();
       setProducts(sellerData?.products || sellerData || []);
@@ -57,11 +58,34 @@ const SellerProductDetails = () => {
       preview: URL.createObjectURL(file),
     }));
 
-    setImages((prev) => [...prev, ...newImages]);
+    setImages((prev) => {
+      const updated = [...prev, ...newImages];
+
+      // if no image selected yet → auto select first uploaded
+      if (!selectedImage && updated.length > 0) {
+        setSelectedImage(updated[0].preview);
+      }
+
+      return updated;
+    });
   };
 
   const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    setImages((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+
+      // if deleted image was selected → update preview
+      if (selectedImage === prev[index]?.preview) {
+        if (updated.length > 0) {
+          setSelectedImage(updated[0].preview);
+        } else {
+          // fallback to original product image
+          setSelectedImage(product?.images?.[0]?.url || null);
+        }
+      }
+
+      return updated;
+    });
   };
 
   const addVariant = () => {
@@ -155,11 +179,7 @@ const SellerProductDetails = () => {
             {/* MAIN IMAGE */}
             <div className="flex items-center justify-center h-[300px] bg-[#0f172a] rounded-lg">
               <img
-                src={
-                  images[0]?.preview ||
-                  images[0]?.url ||
-                  product.images?.[0]?.url
-                }
+                src={selectedImage ? selectedImage : product.images?.[0]?.url}
                 alt=""
                 className="max-h-full object-contain"
               />
@@ -167,12 +187,28 @@ const SellerProductDetails = () => {
 
             {/* THUMBNAILS */}
             <div className="grid grid-cols-4 gap-3">
-              {images.map((img, index) => (
-                <div key={index} className="relative group">
+              {/* ✅ ORIGINAL PRODUCT IMAGE */}
+              {product.images?.[0]?.url && (
+                <div
+                  onClick={() => setSelectedImage(product.images[0].url)}
+                  className="cursor-pointer border border-gray-700 rounded-md p-1"
+                >
                   <img
-                    src={img.preview || img.url}
+                    src={product.images[0].url}
                     alt=""
                     className="w-full h-20 object-cover rounded-md"
+                  />
+                </div>
+              )}
+
+              {/* ✅ NEW UPLOADED IMAGES */}
+              {images.map((image, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={image.preview || image.url}
+                    onClick={() => setSelectedImage(image.preview || image.url)}
+                    alt=""
+                    className="w-full h-20 object-cover rounded-md cursor-pointer"
                   />
 
                   <button
