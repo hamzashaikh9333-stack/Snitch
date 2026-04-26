@@ -8,6 +8,7 @@ const ProductDetails = () => {
 
   const [product, setProduct] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
+  const [selectedVariant, setSelectedVariant] = useState(null);
 
   const { handleGetProductDetails } = useProduct();
 
@@ -45,13 +46,23 @@ const ProductDetails = () => {
 
           {/* IMAGE CARD */}
           <div className="bg-white/80 dark:bg-black backdrop-blur-md rounded-xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
-            <motion.img
-              src={product.images?.[0]?.url}
-              alt={product.title}
-              onClick={() => setPreviewImage(product.images?.[0]?.url)}
-              whileHover={{ scale: 1.05 }}
-              className="w-full h-[350px] md:h-[450px] object-contain cursor-pointer"
-            />
+            <div className="flex flex-col gap-4">
+              {/* MAIN IMAGE */}
+              <motion.img
+                src={
+                  selectedVariant?.images?.[0]?.url || product.images?.[0]?.url
+                }
+                alt={product.title}
+                onClick={() =>
+                  setPreviewImage(
+                    selectedVariant?.images?.[0]?.url ||
+                      product.images?.[0]?.url,
+                  )
+                }
+                whileHover={{ scale: 1.05 }}
+                className="w-full h-[350px] md:h-[450px] object-contain cursor-pointer"
+              />
+            </div>
           </div>
         </motion.div>
 
@@ -69,13 +80,33 @@ const ProductDetails = () => {
 
           {/* PRICE */}
           <p className="text-2xl font-semibold text-yellow-500">
-            {product.price.currency} {product.price.amount}
+            {product.price.currency}{" "}
+            {selectedVariant?.price?.amount || product.price.amount}
           </p>
 
           {/* DESCRIPTION */}
           <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
             {product.description}
           </p>
+          {/* VARIANTS */}
+          {product.variants?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {product.variants.map((variant, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedVariant(variant)}
+                  className={`px-4 py-1 rounded-full text-sm border transition ${
+                    selectedVariant === variant
+                      ? "bg-yellow-400 text-black border-yellow-400"
+                      : "border-gray-400 text-gray-600 dark:text-gray-300 hover:border-yellow-400"
+                  }`}
+                >
+                  {Object.values(variant.attributes || {}).join(" / ") ||
+                    "Variant"}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* BUTTONS */}
           <div className="flex flex-col sm:flex-row gap-4 mt-6">
@@ -97,6 +128,29 @@ const ProductDetails = () => {
               Buy Now
             </motion.button>
           </div>
+          {/* 🔥 VARIANT IMAGE STRIP */}
+              {product.variants?.length > 0 && (
+                <div className="flex gap-3 overflow-x-auto scrollbar-hide">
+                  {product.variants.map((variant, i) => (
+                    <div
+                      key={i}
+                      onClick={() => setSelectedVariant(variant)}
+                      className={`min-w-[70px] h-[80px] rounded-lg overflow-hidden cursor-pointer border-2 transition
+            ${
+              selectedVariant === variant
+                ? "border-yellow-400"
+                : "border-transparent hover:border-yellow-400/50"
+            }
+          `}
+                    >
+                      <img
+                        src={variant.images?.[0]?.url}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
         </motion.div>
       </div>
 

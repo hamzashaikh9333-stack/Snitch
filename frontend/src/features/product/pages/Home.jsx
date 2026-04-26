@@ -9,6 +9,7 @@ const Home = () => {
   const user = useSelector((state) => state.auth.user);
   const { handleGetAllProducts } = useProduct();
 
+  const [selectedVariant, setSelectedVariant] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
   const [showOverlayId, setShowOverlayId] = useState(null);
@@ -112,7 +113,10 @@ const Home = () => {
               {/* IMAGE */}
               <div className="w-full h-52 flex items-center justify-center bg-black overflow-hidden relative">
                 <img
-                  src={product.images?.[0]?.url}
+                  src={
+                    selectedVariant[product._id]?.images?.[0]?.url ||
+                    product.images?.[0]?.url
+                  }
                   alt={product.title}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -137,7 +141,12 @@ const Home = () => {
                       transition={{ duration: 0.3 }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/product/${product._id}`);
+                        navigate(`/product/${product._id}`, {
+                          state: {
+                            selectedVariant:
+                              selectedVariant[product._id] || null,
+                          },
+                        });
                       }}
                       className="bg-yellow-400 text-black px-6 py-3 rounded-md font-semibold shadow-lg hover:bg-yellow-500 transition"
                     >
@@ -158,8 +167,36 @@ const Home = () => {
                 </p>
 
                 <p className="text-yellow-400 font-semibold mt-2">
-                  {product.price?.currency} {product.price?.amount}
+                  {product.price?.currency}{" "}
+                  {selectedVariant[product._id]?.price?.amount ||
+                    product.price?.amount}
                 </p>
+                {/* VARIANT SELECTOR */}
+                {product.variants?.length > 0 && (
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {product.variants.map((variant, i) => (
+                      <button
+                        key={i}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedVariant((prev) => ({
+                            ...prev,
+                            [product._id]: variant,
+                          }));
+                        }}
+                        className={`px-3 py-1 text-xs rounded-full border transition 
+        ${
+          selectedVariant[product._id] === variant
+            ? "bg-yellow-400 text-black border-yellow-400"
+            : "border-gray-600 text-gray-300 hover:border-yellow-400"
+        }`}
+                      >
+                        {Object.values(variant.attributes || {}).join(" / ") ||
+                          "Variant"}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

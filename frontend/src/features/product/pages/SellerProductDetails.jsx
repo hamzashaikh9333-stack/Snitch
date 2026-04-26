@@ -41,7 +41,12 @@ const SellerProductDetails = () => {
   const [localVariants, setLocalVariants] = useState([]);
   const [isAddingVariant, setIsAddingVariant] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [activeImages, setActiveImages] = useState([]);
 
+  const [previewImages, setPreviewImages] = useState([]);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   // UI state for inputs to maintain focus
   const [attributeInputs, setAttributeInputs] = useState([
     { key: "", value: "" },
@@ -79,6 +84,13 @@ const SellerProductDetails = () => {
   useEffect(() => {
     fetchProductDetails();
   }, [productId]);
+
+  useEffect(() => {
+    if (product?.images) {
+      setActiveImages(product.images);
+      setCurrentImageIndex(0);
+    }
+  }, [product]);
 
   // Handlers for modifying existing variant stock natively
   const handleStockChange = (index, newStock) => {
@@ -233,10 +245,43 @@ const SellerProductDetails = () => {
         <section className="flex flex-col md:flex-row gap-8 mb-16">
           <div className="w-full md:w-1/2">
             {/* Gallery placeholder */}
-            <div className="w-full aspect-[4/5] bg-[#f5f3f0] overflow-hidden">
-              {product.images && product.images.length > 0 ? (
+            <div className="relative w-full aspect-[4/5] bg-[#f5f3f0] overflow-hidden">
+              {/* LEFT BUTTON */}
+              {activeImages.length > 1 && (
+                <button
+                  onClick={() =>
+                    setCurrentImageIndex((prev) =>
+                      prev === 0 ? activeImages.length - 1 : prev - 1,
+                    )
+                  }
+                  className="absolute left-4 top-1/2 -translate-y-1/2 
+             w-10 h-10 flex items-center justify-center
+             rounded-full bg-black/40 backdrop-blur-md
+             text-white hover:bg-black/70
+             transition-all duration-300 shadow-lg
+             cursor-pointer"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 19l-7-7 7-7"
+                    />
+                  </svg>
+                </button>
+              )}
+
+              {/* MAIN IMAGE */}
+              {activeImages.length > 0 ? (
                 <img
-                  src={product.images[0].url}
+                  src={activeImages[currentImageIndex]?.url}
                   alt={product.title}
                   className="w-full h-full object-cover"
                 />
@@ -245,16 +290,50 @@ const SellerProductDetails = () => {
                   No Image
                 </div>
               )}
+
+              {/* RIGHT BUTTON */}
+              {activeImages.length > 1 && (
+                <button
+                  onClick={() =>
+                    setCurrentImageIndex((prev) =>
+                      prev === activeImages.length - 1 ? 0 : prev + 1,
+                    )
+                  }
+                  className="absolute right-4 top-1/2 -translate-y-1/2 
+             w-10 h-10 flex items-center justify-center
+             rounded-full bg-black/40 backdrop-blur-md
+             text-white hover:bg-black/70
+             transition-all duration-300 shadow-lg
+             cursor-pointer"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
             {/* Thumbnails */}
-            {product.images && product.images.length > 1 && (
+            {activeImages.length > 1 && (
               <div className="flex gap-2 mt-2 overflow-x-auto">
-                {product.images.slice(1).map((img, i) => (
+                {activeImages.map((img, i) => (
                   <img
                     key={i}
                     src={img.url}
-                    alt={`Thumb ${i}`}
-                    className="w-16 h-20 object-cover bg-[#f5f3f0] shrink-0"
+                    onClick={() => setCurrentImageIndex(i)}
+                    className={`w-16 h-20 object-cover shrink-0 cursor-pointer border 
+          ${i === currentImageIndex ? "border-black" : "border-transparent"}
+        `}
                   />
                 ))}
               </div>
@@ -473,7 +552,15 @@ const SellerProductDetails = () => {
               {localVariants.map((variant, idx) => (
                 <div
                   key={idx}
-                  className="bg-[#ffffff] flex flex-col pt-4 shadow-[0_20px_40px_rgba(27,28,26,0.02)]"
+                  onClick={() => {
+                    if (variant.images?.length > 0) {
+                      setPreviewImages(variant.images);
+                      setPreviewIndex(0);
+                      setIsPreviewOpen(true);
+                    }
+                  }}
+                  className="bg-[#ffffff] flex flex-col pt-4 
+                 cursor-pointer shadow-[0_20px_40px_rgba(27,28,26,0.02)]"
                 >
                   <div className="px-6 flex gap-4 h-24 mb-4">
                     {/* Variant Thumb */}
@@ -533,6 +620,51 @@ const SellerProductDetails = () => {
           )}
         </section>
       </main>
+      {isPreviewOpen && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+          {/* CLOSE BUTTON */}
+          <button
+            onClick={() => setIsPreviewOpen(false)}
+            className="absolute top-5 right-5 text-white text-2xl"
+          >
+            ✕
+          </button>
+
+          {/* LEFT BUTTON */}
+          {previewImages.length > 1 && (
+            <button
+              onClick={() =>
+                setPreviewIndex((prev) =>
+                  prev === 0 ? previewImages.length - 1 : prev - 1,
+                )
+              }
+              className="absolute left-5 text-white text-3xl"
+            >
+              ◀
+            </button>
+          )}
+
+          {/* IMAGE */}
+          <img
+            src={previewImages[previewIndex]?.url}
+            className="max-h-[80vh] max-w-[90vw] object-contain"
+          />
+
+          {/* RIGHT BUTTON */}
+          {previewImages.length > 1 && (
+            <button
+              onClick={() =>
+                setPreviewIndex((prev) =>
+                  prev === previewImages.length - 1 ? 0 : prev + 1,
+                )
+              }
+              className="absolute right-5 text-white text-3xl"
+            >
+              ▶
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
