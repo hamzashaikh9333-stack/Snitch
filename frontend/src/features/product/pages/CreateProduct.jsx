@@ -71,7 +71,7 @@ const CreateProduct = () => {
       });
 
       await handleCreateProduct(data);
-      navigate("/");
+      navigate("/seller/dashboard");
     } catch (err) {
       console.log(err);
     }

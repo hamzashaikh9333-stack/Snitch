@@ -1,336 +1,538 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useProduct } from "../hooks/useProduct";
-import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useParams } from "react-router";
+
+// Helper icons
+const PlusIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="12" y1="5" x2="12" y2="19"></line>
+    <line x1="5" y1="12" x2="19" y2="12"></line>
+  </svg>
+);
+const TrashIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+  </svg>
+);
 
 const SellerProductDetails = () => {
-  const { handleGetProductDetails, handleGetSellerProducts } = useProduct();
-  const { productId } = useParams();
-  const navigate = useNavigate();
-
   const [product, setProduct] = useState(null);
-  const [variants, setVariants] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [images, setImages] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [localVariants, setLocalVariants] = useState([]);
+  const [isAddingVariant, setIsAddingVariant] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // ================= FETCH =================
-  useEffect(() => {
-    async function fetchData() {
+  // UI state for inputs to maintain focus
+  const [attributeInputs, setAttributeInputs] = useState([
+    { key: "", value: "" },
+  ]);
+
+  // New variant state
+  const [newVariant, setNewVariant] = useState({
+    images: [],
+    stock: 0,
+    attributes: {}, // Strictly an object
+    price: { amount: "", currency: "INR" },
+  });
+
+  const { productId } = useParams();
+  const { handleGetProductDetails, handleAddProductVariant } = useProduct();
+
+  async function fetchProductDetails() {
+    setLoading(true);
+    try {
       const data = await handleGetProductDetails(productId);
-      const finalData = data?.product || data;
-
-      setProduct(finalData);
-      setSelectedImage(finalData?.images?.[0]?.url || null);
-      setVariants(finalData?.variants || []);
-
-      const sellerData = await handleGetSellerProducts();
-      setProducts(sellerData?.products || sellerData || []);
+      console.log(data);
+      const prod = data?.product || data;
+      setProduct(prod);
+      // Initialize variants locally
+      if (prod?.variants) {
+        setLocalVariants(prod.variants);
+      }
+    } catch (error) {
+      console.error("Failed to fetch product details", error);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    fetchData();
+  useEffect(() => {
+    fetchProductDetails();
   }, [productId]);
 
-  // ================= HANDLERS =================
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    if (name === "price") {
-      setProduct((prev) => ({
-        ...prev,
-        price: { ...prev.price, amount: value },
-      }));
-    } else {
-      setProduct((prev) => ({ ...prev, [name]: value }));
-    }
+  // Handlers for modifying existing variant stock natively
+  const handleStockChange = (index, newStock) => {
+    const updatedVariants = [...localVariants];
+    updatedVariants[index] = {
+      ...updatedVariants[index],
+      stock: Number(newStock),
+    };
+    setLocalVariants(updatedVariants);
   };
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
 
-    if (images.length + files.length > 7) {
-      alert("Maximum 7 images allowed");
+  // Handlers for New Variant Form
+  const handleAddNewVariant = async () => {
+    // Validate required at least one attribute to be filled
+    const hasValidAttribute = attributeInputs.some(
+      (attr) => attr.key.trim() && attr.value.trim(),
+    );
+    if (!hasValidAttribute) {
+      alert("At least one valid attribute is required.");
       return;
     }
 
-    const newImages = files.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
+    // Maps preview URL so the variant list can display the image locally
+    const cleanImages = newVariant.images.map((img) => ({
+      url: img.previewUrl,
+      file: img.file,
     }));
 
-    setImages((prev) => {
-      const updated = [...prev, ...newImages];
+    // Attributes is already an object in newVariant, just use it safely
+    const cleanAttributes = { ...newVariant.attributes };
 
-      // if no image selected yet → auto select first uploaded
-      if (!selectedImage && updated.length > 0) {
-        setSelectedImage(updated[0].preview);
-      }
+    const variantToSave = {
+      images: cleanImages,
+      stock: Number(newVariant.stock),
+      attributes: cleanAttributes,
+      price: newVariant.price.amount
+        ? Number(newVariant.price.amount)
+        : undefined, // price is optional
+    };
 
-      return updated;
+    setLocalVariants([...localVariants, variantToSave]);
+    setIsAddingVariant(false);
+
+    await handleAddProductVariant(productId, variantToSave);
+
+    // Reset form
+    // Note: should ideally revoke old object URLs as well to prevent memory leaks if it were a long-lived SPA
+    setAttributeInputs([{ key: "", value: "" }]);
+    setNewVariant({
+      images: [],
+      stock: 0,
+      attributes: {},
+      price: { amount: "", currency: "INR" },
     });
   };
 
-  const removeImage = (index) => {
-    setImages((prev) => {
-      const updated = prev.filter((_, i) => i !== index);
-
-      // if deleted image was selected → update preview
-      if (selectedImage === prev[index]?.preview) {
-        if (updated.length > 0) {
-          setSelectedImage(updated[0].preview);
-        } else {
-          // fallback to original product image
-          setSelectedImage(product?.images?.[0]?.url || null);
-        }
-      }
-
-      return updated;
-    });
+  const handleAddAttribute = () => {
+    setAttributeInputs((prev) => [...prev, { key: "", value: "" }]);
   };
 
-  const addVariant = () => {
-    setVariants((prev) => [
+  const handleAttributeChange = (index, field, value) => {
+    const updatedInputs = [...attributeInputs];
+    updatedInputs[index][field] = value;
+    setAttributeInputs(updatedInputs);
+
+    // Synchronize to object format
+    const newAttrsObj = {};
+    updatedInputs.forEach((attr) => {
+      if (attr.key.trim() !== "") {
+        newAttrsObj[attr.key.trim()] = attr.value;
+      }
+    });
+    setNewVariant((prev) => ({ ...prev, attributes: newAttrsObj }));
+  };
+
+  const handleRemoveAttribute = (index) => {
+    const updatedInputs = attributeInputs.filter((_, i) => i !== index);
+    setAttributeInputs(updatedInputs);
+
+    // Synchronize to object format
+    const newAttrsObj = {};
+    updatedInputs.forEach((attr) => {
+      if (attr.key.trim() !== "") {
+        newAttrsObj[attr.key.trim()] = attr.value;
+      }
+    });
+    setNewVariant((prev) => ({ ...prev, attributes: newAttrsObj }));
+  };
+
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const availableSlots = 7 - newVariant.images.length;
+    const filesToAdd = files.slice(0, availableSlots);
+
+    if (files.length > availableSlots) {
+      alert(`You can only upload up to 7 images. ${filesToAdd.length} added.`);
+    }
+
+    const newImageObjects = filesToAdd.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+
+    setNewVariant((prev) => ({
       ...prev,
-      { stock: 0, attributes: {}, price: { amount: "", currency: "INR" } },
-    ]);
+      images: [...prev.images, ...newImageObjects],
+    }));
+
+    // Clear the input so identical files can be selected again if needed
+    e.target.value = "";
   };
 
-  const removeVariant = (i) => {
-    setVariants((prev) => prev.filter((_, idx) => idx !== i));
+  const handleRemoveImage = (index) => {
+    const imageToRemove = newVariant.images[index];
+    if (imageToRemove?.previewUrl) {
+      URL.revokeObjectURL(imageToRemove.previewUrl);
+    }
+    const updatedImages = newVariant.images.filter((_, i) => i !== index);
+    setNewVariant((prev) => ({ ...prev, images: updatedImages }));
   };
 
-  const updateVariant = (i, field, value) => {
-    const updated = [...variants];
-    updated[i][field] = value;
-    setVariants(updated);
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#fbf9f6] flex items-center justify-center text-[#1b1c1a] font-serif">
+        Loading gallery...
+      </div>
+    );
+  }
 
-  // ================= UI =================
   if (!product) {
     return (
-      <div className="h-screen flex items-center justify-center text-gray-400">
-        Loading...
+      <div className="min-h-screen bg-[#fbf9f6] flex items-center justify-center text-[#1b1c1a] font-serif">
+        Product Not Found
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-black text-white flex overflow-hidden">
-      {/* ================= SIDEBAR ================= */}
-      <div className="w-72 border-r border-gray-800 bg-black flex flex-col">
-        <div className="p-5 border-b border-gray-800">
-          <p className="text-yellow-400 text-xs tracking-widest">INVENTORY</p>
-          <h2 className="text-lg font-semibold mt-1">Products</h2>
-        </div>
+    <div className="min-h-screen bg-[#fbf9f6] text-[#1b1c1a] font-sans pb-24">
+      {/* Top Banner / Header */}
+      <header className="sticky top-0 z-10 bg-[#fbf9f6]/80 backdrop-blur-md px-6 py-4 flex items-center justify-between">
+        <h1 className="font-serif text-xl tracking-wide uppercase">
+          {product.title?.substring(0, 20)}
+          {product.title?.length > 20 ? "..." : ""}
+        </h1>
+      </header>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-3">
-          {products.map((item) => (
-            <motion.div
-              key={item._id}
-              whileHover={{ scale: 1.02 }}
-              onClick={() => navigate(`/seller/product/${item._id}`)}
-              className={`p-3 rounded-lg cursor-pointer border transition ${
-                item._id === productId
-                  ? "border-yellow-400 bg-[#111827]"
-                  : "border-gray-800 hover:border-gray-600 hover:bg-[#0f172a]"
-              }`}
-            >
-              <div className="flex gap-3 items-center">
+      <main className="max-w-6xl mx-auto px-4 md:px-8 mt-8">
+        {/* Base Product Info */}
+        <section className="flex flex-col md:flex-row gap-8 mb-16">
+          <div className="w-full md:w-1/2">
+            {/* Gallery placeholder */}
+            <div className="w-full aspect-[4/5] bg-[#f5f3f0] overflow-hidden">
+              {product.images && product.images.length > 0 ? (
                 <img
-                  src={item.images?.[0]?.url}
-                  alt=""
-                  className="w-12 h-12 object-cover rounded-md"
+                  src={product.images[0].url}
+                  alt={product.title}
+                  className="w-full h-full object-cover"
                 />
-                <div>
-                  <p className="text-sm font-medium truncate">{item.title}</p>
-                  <p className="text-xs text-gray-400">
-                    {item.price?.amount} {item.price?.currency}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-
-      {/* ================= MAIN ================= */}
-      <div className="flex-1 flex flex-col">
-        {/* HEADER */}
-        <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center">
-          <div>
-            <h1 className="text-xl font-semibold">{product.title}</h1>
-            <p className="text-xs text-gray-400">Edit product details</p>
-          </div>
-
-          <button className="bg-yellow-400 text-black px-5 py-2 rounded-md font-semibold hover:bg-yellow-500 transition">
-            Save
-          </button>
-        </div>
-
-        {/* CONTENT */}
-        <div className="flex-1 overflow-y-auto p-6 grid lg:grid-cols-2 gap-8">
-          {/* LEFT - PREVIEW */}
-          {/* LEFT - IMAGE MANAGER */}
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-black rounded-xl p-6 border border-gray-800 flex flex-col gap-5"
-          >
-            {/* MAIN IMAGE */}
-            <div className="flex items-center justify-center h-[300px] bg-[#0f172a] rounded-lg">
-              <img
-                src={selectedImage ? selectedImage : product.images?.[0]?.url}
-                alt=""
-                className="max-h-full object-contain"
-              />
-            </div>
-
-            {/* THUMBNAILS */}
-            <div className="grid grid-cols-4 gap-3">
-              {/* ✅ ORIGINAL PRODUCT IMAGE */}
-              {product.images?.[0]?.url && (
-                <div
-                  onClick={() => setSelectedImage(product.images[0].url)}
-                  className="cursor-pointer border border-gray-700 rounded-md p-1"
-                >
-                  <img
-                    src={product.images[0].url}
-                    alt=""
-                    className="w-full h-20 object-cover rounded-md"
-                  />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[#7f7668]">
+                  No Image
                 </div>
               )}
-
-              {/* ✅ NEW UPLOADED IMAGES */}
-              {images.map((image, index) => (
-                <div key={index} className="relative group">
+            </div>
+            {/* Thumbnails */}
+            {product.images && product.images.length > 1 && (
+              <div className="flex gap-2 mt-2 overflow-x-auto">
+                {product.images.slice(1).map((img, i) => (
                   <img
-                    src={image.preview || image.url}
-                    onClick={() => setSelectedImage(image.preview || image.url)}
-                    alt=""
-                    className="w-full h-20 object-cover rounded-md cursor-pointer"
+                    key={i}
+                    src={img.url}
+                    alt={`Thumb ${i}`}
+                    className="w-16 h-20 object-cover bg-[#f5f3f0] shrink-0"
                   />
-
-                  <button
-                    onClick={() => removeImage(index)}
-                    className="absolute top-1 right-1 bg-red-500 text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* UPLOAD */}
-            <label className="border-2 border-dashed border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-yellow-400 transition">
-              <input
-                type="file"
-                multiple
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-
-              <p className="text-sm">
-                Drop images or{" "}
-                <span className="text-yellow-400 underline">upload</span>
-              </p>
-              <p className="text-xs mt-1">Max 7 images</p>
-            </label>
-          </motion.div>
-
-          {/* RIGHT - FORM */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="space-y-6"
-          >
-            {/* BASIC */}
-            <div className="bg-black p-5 rounded-xl border border-gray-800">
-              <h3 className="mb-4 font-medium">Basic Info</h3>
-
-              <div className="space-y-4">
-                <input
-                  name="title"
-                  value={product.title}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 px-4 py-3 rounded-md"
-                />
-
-                <input
-                  name="price"
-                  value={product.price?.amount}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 px-4 py-3 rounded-md"
-                />
-
-                <textarea
-                  name="description"
-                  value={product.description}
-                  onChange={handleChange}
-                  className="w-full bg-black border border-gray-700 px-4 py-3 rounded-md"
-                />
+                ))}
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* VARIANTS */}
-            <div>
-              <div className="flex justify-between mb-4">
-                <h3 className="font-medium">Variants</h3>
+          <div className="w-full md:w-1/2 flex flex-col justify-center">
+            <h2 className="font-serif text-4xl md:text-5xl leading-tight mb-4 uppercase">
+              {product.title}
+            </h2>
+            <p className="text-[#6e6258] text-lg mb-6 leading-relaxed max-w-md">
+              {product.description}
+            </p>
+            <div className="text-2xl tracking-wide font-light mb-8">
+              {product.price?.amount} {product.price?.currency}
+            </div>
+          </div>
+        </section>
+
+        {/* Variants & Inventory */}
+        <section className="bg-[#e6e5e3] p-6 md:p-12">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+            <h3 className="font-serif text-3xl uppercase">
+              Variants & Inventory
+            </h3>
+            {!isAddingVariant && (
+              <button
+                onClick={() => setIsAddingVariant(true)}
+                className="bg-[#745a27] text-[#ffffff] px-6 py-3 uppercase tracking-wider text-sm hover:bg-[#5a4312] transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <PlusIcon /> Add New Variant
+              </button>
+            )}
+          </div>
+
+          {/* Add New Variant Form */}
+          {isAddingVariant && (
+            <div className="bg-[#ffffff] p-6 md:p-8 mb-12 shadow-[0_20px_40px_rgba(27,28,26,0.04)]">
+              <div className="flex justify-between items-center mb-6">
+                <h4 className="font-serif text-xl uppercase">Create Variant</h4>
                 <button
-                  onClick={addVariant}
-                  className="text-yellow-400 text-sm"
+                  onClick={() => setIsAddingVariant(false)}
+                  className="text-[#7f7668] hover:text-[#1b1c1a] text-sm uppercase tracking-wider cursor-pointer"
                 >
-                  + Add
+                  Cancel
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {variants.map((v, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="bg-black p-4 rounded-xl border border-gray-800"
-                  >
-                    <div className="flex justify-between mb-3">
-                      <p className="text-sm text-gray-400">Variant {i + 1}</p>
-                      <button
-                        onClick={() => removeVariant(i)}
-                        className="text-red-400 text-sm"
-                      >
-                        Remove
-                      </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Form Left Col: Attributes & Basics */}
+                <div className="space-y-6">
+                  {/* Dynamic Attributes */}
+                  <div>
+                    <label className="block text-sm uppercase tracking-wider text-[#6e6258] mb-3">
+                      Attributes (e.g. Size, Color) *
+                    </label>
+                    <div className="space-y-3">
+                      {attributeInputs.map((attr, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="Key (e.g., Size)"
+                            value={attr.key}
+                            onChange={(e) =>
+                              handleAttributeChange(
+                                index,
+                                "key",
+                                e.target.value,
+                              )
+                            }
+                            className="w-1/2 bg-transparent border-b border-[#d0c5b5] py-2 focus:outline-none focus:border-[#745a27] placeholder:text-[#d0c5b5]"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Value (e.g., M)"
+                            value={attr.value}
+                            onChange={(e) =>
+                              handleAttributeChange(
+                                index,
+                                "value",
+                                e.target.value,
+                              )
+                            }
+                            className="w-1/2 bg-transparent border-b border-[#d0c5b5] py-2 focus:outline-none focus:border-[#745a27] placeholder:text-[#d0c5b5]"
+                          />
+                          {attributeInputs.length > 1 && (
+                            <button
+                              onClick={() => handleRemoveAttribute(index)}
+                              className="text-[#ba1a1a] p-2 hover:bg-[#ffdad6] transition-colors cursor-pointer"
+                            >
+                              <TrashIcon />
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
+                    <button
+                      onClick={handleAddAttribute}
+                      className="mt-3 text-[#745a27] text-sm uppercase tracking-wider flex items-center gap-1 hover:text-[#5a4312] cursor-pointer"
+                    >
+                      <PlusIcon /> Add Attribute
+                    </button>
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                  {/* Stock & Price */}
+                  <div className="flex gap-4">
+                    <div className="w-1/2">
+                      <label className="block text-sm uppercase tracking-wider text-[#6e6258] mb-2">
+                        Initial Stock
+                      </label>
                       <input
-                        placeholder="Price"
-                        value={v.price.amount}
+                        type="number"
+                        value={newVariant.stock}
                         onChange={(e) =>
-                          updateVariant(i, "price", {
-                            ...v.price,
-                            amount: e.target.value,
+                          setNewVariant({
+                            ...newVariant,
+                            stock: e.target.value,
                           })
                         }
-                        className="bg-black border border-gray-700 px-3 py-2 rounded-md"
-                      />
-
-                      <input
-                        placeholder="Stock"
-                        value={v.stock}
-                        onChange={(e) =>
-                          updateVariant(i, "stock", e.target.value)
-                        }
-                        className="bg-black border border-gray-700 px-3 py-2 rounded-md"
+                        className="w-full bg-transparent border-b border-[#d0c5b5] py-2 focus:outline-none focus:border-[#745a27]"
                       />
                     </div>
-                  </motion.div>
-                ))}
+                    <div className="w-1/2">
+                      <label className="block text-sm uppercase tracking-wider text-[#6e6258] mb-2">
+                        Price Amount (Optional)
+                      </label>
+                      <input
+                        type="number"
+                        value={newVariant.price.amount}
+                        onChange={(e) =>
+                          setNewVariant({
+                            ...newVariant,
+                            price: {
+                              ...newVariant.price,
+                              amount: e.target.value,
+                            },
+                          })
+                        }
+                        placeholder="Default if empty"
+                        className="w-full bg-transparent border-b border-[#d0c5b5] py-2 focus:outline-none focus:border-[#745a27] placeholder:text-[#d0c5b5]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Right Col: Images */}
+                <div>
+                  <div className="flex justify-between items-end mb-3">
+                    <label className="block text-sm uppercase tracking-wider text-[#6e6258]">
+                      Image Upload (Max 7, Optional)
+                    </label>
+                    <span className="text-xs text-[#7f7668]">
+                      {newVariant.images.length}/7
+                    </span>
+                  </div>
+
+                  {newVariant.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      {newVariant.images.map((img, index) => (
+                        <div
+                          key={index}
+                          className="relative aspect-[4/5] bg-[#f5f3f0]"
+                        >
+                          <img
+                            src={img.previewUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-1 right-1 bg-white/80 p-1 text-[#ba1a1a] hover:bg-white transition-colors cursor-pointer"
+                          >
+                            <TrashIcon />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {newVariant.images.length < 7 && (
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="block w-full text-sm text-[#6e6258]
+                          file:mr-4 file:py-2 file:px-4
+                          file:border-0 file:bg-[#f5f3f0] file:text-[#1b1c1a]
+                          hover:file:bg-[#e4e2df] file:cursor-pointer file:uppercase file:text-xs file:tracking-wider file:font-serif
+                          cursor-pointer"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-10 flex justify-end">
+                <button
+                  onClick={handleAddNewVariant}
+                  className="bg-gradient-to-r from-[#745a27] to-[#c9a96e] text-[#ffffff] px-8 py-3 uppercase tracking-wider text-sm hover:opacity-90 transition-opacity cursor-pointer"
+                >
+                  Save Variant
+                </button>
               </div>
             </div>
-          </motion.div>
-        </div>
-      </div>
+          )}
+
+          {/* Variants List */}
+          {localVariants.length === 0 ? (
+            <div className="py-12 text-center text-[#6e6258]">
+              <p>No variants have been created yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {localVariants.map((variant, idx) => (
+                <div
+                  key={idx}
+                  className="bg-[#ffffff] flex flex-col pt-4 shadow-[0_20px_40px_rgba(27,28,26,0.02)]"
+                >
+                  <div className="px-6 flex gap-4 h-24 mb-4">
+                    {/* Variant Thumb */}
+                    <div className="w-16 h-20 bg-[#f5f3f0] shrink-0">
+                      {variant.images && variant.images.length > 0 ? (
+                        <img
+                          src={variant.images[0].url}
+                          alt="Variant"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs text-[#7f7668]">
+                          N/A
+                        </div>
+                      )}
+                    </div>
+                    {/* Attributes */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {Object.entries(variant.attributes || {}).map(
+                          ([key, val]) => (
+                            <span
+                              key={key}
+                              className="bg-[#f5f3f0] px-2 py-1 text-xs uppercase tracking-wider text-[#4d463a]"
+                            >
+                              <span className="text-[#a8a094]">{key}:</span>{" "}
+                              {val}
+                            </span>
+                          ),
+                        )}
+                      </div>
+                      <div className="text-sm font-light">
+                        {variant.price?.amount
+                          ? `${variant.price.amount} ${variant.price.currency}`
+                          : "Base Price"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stock Management Row */}
+                  <div className="mt-auto border-t border-[#f5f3f0] bg-[#fbf9f6] flex items-center px-6 py-3 justify-between">
+                    <label className="text-sm text-[#6e6258] uppercase tracking-wider">
+                      Current Stock
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={variant.stock || 0}
+                        onChange={(e) => handleStockChange(idx, e.target.value)}
+                        className="w-20 bg-transparent border-b border-[#d0c5b5] py-1 text-right focus:outline-none focus:border-[#745a27] font-serif text-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 };

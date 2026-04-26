@@ -41,7 +41,7 @@ productRouter.post(
   "/:productId/variants",
   authenticateSeller,
   upload.array("images", 7),
-  createProductValidator,addProductVariant
+  addProductVariant
 );
 
 export default productRouter;

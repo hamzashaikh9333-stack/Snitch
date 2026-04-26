@@ -1,15 +1,18 @@
-import { createProduct, getSellerProducts, getAllProducts, getProductDetails} from "../api/product.api";
-import {useDispatch} from "react-redux";
-import {setSellerProducts, setProducts} from "../state/product.slice";
+import {
+  createProduct,
+  getSellerProducts,
+  getAllProducts,
+  getProductDetails,
+  addProductVariant,
+} from "../api/product.api";
+import { useDispatch } from "react-redux";
+import { setSellerProducts, setProducts } from "../state/product.slice";
 
 export const useProduct = () => {
-
-    const dispatch = useDispatch();
+  const dispatch = useDispatch();
   async function handleCreateProduct(formData) {
-
     const data = await createProduct(formData);
     return data.product;
-
   }
 
   async function handleGetSellerProducts() {
@@ -21,13 +24,21 @@ export const useProduct = () => {
   async function handleGetAllProducts() {
     const data = await getAllProducts();
     dispatch(setProducts(data.products));
-    
   }
 
-  async function handleGetProductDetails(productId){
-    const data = await getProductDetails(productId)
-    return data.product
+  async function handleGetProductDetails(productId) {
+    const data = await getProductDetails(productId);
+    return data.product;
   }
-
-  return { handleCreateProduct, handleGetSellerProducts, handleGetAllProducts, handleGetProductDetails }; 
+  async function handleAddProductVariant(productId, newProductVariant) {
+    const data = await addProductVariant(productId, newProductVariant);
+    return data;
+  }
+  return {
+    handleCreateProduct,
+    handleGetSellerProducts,
+    handleGetAllProducts,
+    handleGetProductDetails,
+    handleAddProductVariant,
+  };
 };
