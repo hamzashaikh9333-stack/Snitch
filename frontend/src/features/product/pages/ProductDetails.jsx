@@ -2,15 +2,18 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useProduct } from "../hooks/useProduct";
 import { motion } from "framer-motion";
+import useCart from "../../cart/hook/useCart";
 
 const ProductDetails = () => {
   const { productId } = useParams();
 
   const [product, setProduct] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
-  const [selectedVariant, setSelectedVariant] = useState(null);
+  const [selectedVariant, setSelectedVariant] = useState("default");
 
   const { handleGetProductDetails } = useProduct();
+
+  const { handleAddItem } = useCart();
 
   async function fetchProductDetails() {
     const data = await handleGetProductDetails(productId);
@@ -20,6 +23,8 @@ const ProductDetails = () => {
   useEffect(() => {
     fetchProductDetails();
   }, [productId]);
+
+  console.log({ product, selectedVariant });
 
   if (!product) {
     return (
@@ -50,13 +55,16 @@ const ProductDetails = () => {
               {/* MAIN IMAGE */}
               <motion.img
                 src={
-                  selectedVariant?.images?.[0]?.url || product.images?.[0]?.url
+                  selectedVariant === "default"
+                    ? product.images?.[0]?.url
+                    : selectedVariant?.images?.[0]?.url
                 }
                 alt={product.title}
                 onClick={() =>
                   setPreviewImage(
-                    selectedVariant?.images?.[0]?.url ||
-                      product.images?.[0]?.url,
+                    selectedVariant === "default"
+                      ? product.images?.[0]?.url
+                      : selectedVariant?.images?.[0]?.url,
                   )
                 }
                 whileHover={{ scale: 1.05 }}
@@ -81,7 +89,9 @@ const ProductDetails = () => {
           {/* PRICE */}
           <p className="text-2xl font-semibold text-yellow-500">
             {product.price.currency}{" "}
-            {selectedVariant?.price?.amount || product.price.amount}
+            {selectedVariant === "default"
+              ? product.price.amount
+              : selectedVariant?.price?.amount}
           </p>
 
           {/* DESCRIPTION */}
@@ -89,8 +99,19 @@ const ProductDetails = () => {
             {product.description}
           </p>
           {/* VARIANTS */}
+          
           {product.variants?.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
+              <button
+            onClick={() => setSelectedVariant("default")}
+            className={`px-4 py-1 rounded-full border ${
+              selectedVariant === "default"
+                ? "bg-yellow-400 text-black"
+                : "border-gray-400"
+            }`}
+          >
+            Default
+          </button>
               {product.variants.map((variant, i) => (
                 <button
                   key={i}
@@ -115,6 +136,15 @@ const ProductDetails = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="flex-1 bg-gray-900 dark:bg-gray-800 text-white py-3 rounded-md hover:bg-yellow-400 hover:text-black transition"
+              onClick={() => {
+                handleAddItem({
+                  productId: product._id,
+                  variantId:
+                    selectedVariant === "default"
+                      ? product.variants?.[0]?._id // 👈 default variant
+                      : selectedVariant._id,
+                });
+              }}
             >
               Add to Cart
             </motion.button>
@@ -129,28 +159,40 @@ const ProductDetails = () => {
             </motion.button>
           </div>
           {/* 🔥 VARIANT IMAGE STRIP */}
-              {product.variants?.length > 0 && (
-                <div className="flex gap-3 overflow-x-auto scrollbar-hide">
-                  {product.variants.map((variant, i) => (
-                    <div
-                      key={i}
-                      onClick={() => setSelectedVariant(variant)}
-                      className={`min-w-[70px] h-[80px] rounded-lg overflow-hidden cursor-pointer border-2 transition
+          {product.variants?.length > 0 && (
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide">
+              <div
+                onClick={() => setSelectedVariant("default")}
+                className={`min-w-[70px] h-[80px] rounded-lg overflow-hidden cursor-pointer border-2
+  ${
+    selectedVariant === "default" ? "border-yellow-400" : "border-transparent"
+  }`}
+              >
+                <img
+                  src={product.images?.[0]?.url}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {product.variants.map((variant, i) => (
+                <div
+                  key={i}
+                  onClick={() => setSelectedVariant(variant)}
+                  className={`min-w-[70px] h-[80px] rounded-lg overflow-hidden cursor-pointer border-2 transition
             ${
               selectedVariant === variant
                 ? "border-yellow-400"
                 : "border-transparent hover:border-yellow-400/50"
             }
           `}
-                    >
-                      <img
-                        src={variant.images?.[0]?.url}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
+                >
+                  <img
+                    src={variant.images?.[0]?.url}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-              )}
+              ))}
+            </div>
+          )}
         </motion.div>
       </div>
 
