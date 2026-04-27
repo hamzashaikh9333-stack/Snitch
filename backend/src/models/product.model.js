@@ -28,6 +28,10 @@ const productSchema = new mongoose.Schema(
         },
       },
     ],
+    stock: {
+      type: Number,
+      default: 0,
+    },
     variants: [
       {
         images: [
@@ -48,7 +52,6 @@ const productSchema = new mongoose.Schema(
         },
         price: {
           type: priceSchema,
-          
         },
       },
     ],

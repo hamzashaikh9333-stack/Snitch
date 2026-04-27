@@ -93,7 +93,7 @@ const SellerDashboard = () => {
                 <img
                   src={product.images?.[0]?.url}
                   alt={product.title}
-                  onClick={() => setPreviewImage(product.images?.[0]?.url)}
+                  onClick={() => navigate(`/product/${product._id}`)}
                   className="max-h-full max-w-full object-contain cursor-pointer transition duration-500 group-hover:scale-105"
                 />
               </div>

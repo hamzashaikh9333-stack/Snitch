@@ -3,9 +3,7 @@ import { authenticateUser } from "../middleware/auth.middleware.js";
 import { validateAddToCart } from "../validator/cart.validator.js";
 import { addToCart, getCart } from "../controllers/cart.controller.js";
 
-
 const cartRouter = Router();
-
 
 /* 
     cartRouter.get("/api/cart/add/:productId/:variantId",authenticateUser)
@@ -14,9 +12,21 @@ const cartRouter = Router();
     arguments : productId,variantId quantity
 */
 
+// WITHOUT variant
+cartRouter.post(
+  "/add/:productId",
+  authenticateUser,
+  validateAddToCart,
+  addToCart,
+);
 
-cartRouter.post("/add/:productId/:variantId",authenticateUser,validateAddToCart,addToCart)
-
+// WITH variant
+cartRouter.post(
+  "/add/:productId/:variantId",
+  authenticateUser,
+  validateAddToCart,
+  addToCart,
+);
 
 /*
     cartRouter.get("/api/cart",authenticateUser)
@@ -25,7 +35,7 @@ cartRouter.post("/add/:productId/:variantId",authenticateUser,validateAddToCart,
     route : /api/cart
 
 
-*/ 
-cartRouter.get("/",authenticateUser,getCart)
+*/
+cartRouter.get("/", authenticateUser, getCart);
 
-export default cartRouter
+export default cartRouter;

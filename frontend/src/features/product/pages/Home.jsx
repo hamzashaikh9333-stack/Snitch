@@ -11,60 +11,65 @@ const Home = () => {
 
   const [selectedVariant, setSelectedVariant] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
-  const [hoveredId, setHoveredId] = useState(null);
-  const [showOverlayId, setShowOverlayId] = useState(null);
-  const hoverTimeout = useRef(null);
 
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  const hoverTimeout = useRef(null);
   const navigate = useNavigate();
+  const productsRef = useRef(null);
 
   useEffect(() => {
     handleGetAllProducts();
   }, []);
 
-  // 🔥 hover logic with delay (FIXED)
-  const handleMouseEnter = (id) => {
-    setHoveredId(id);
+  const scrollToProducts = () => {
+    productsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-    if (hoverTimeout.current) {
-      clearTimeout(hoverTimeout.current);
-    }
+  // 🔥 HERO AUTO SLIDER
+  useEffect(() => {
+    if (!products?.length) return;
+
+    const interval = setInterval(() => {
+      setHeroIndex((prev) => (prev + 1) % products.length);
+    }, 1000); // ⚠️ you can change to 2500 for better UX
+
+    return () => clearInterval(interval);
+  }, [products]);
+
+  const heroImage = products?.[heroIndex]?.images?.[0]?.url || "";
+
+  // 🔥 HOVER LOGIC
+  const handleMouseEnter = (id) => {
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
 
     hoverTimeout.current = setTimeout(() => {
       setShowOverlayId(id);
-    }, 2000);
+    }, 1200);
   };
 
   const handleMouseLeave = () => {
-    setHoveredId(null);
     setShowOverlayId(null);
-
-    if (hoverTimeout.current) {
-      clearTimeout(hoverTimeout.current);
-    }
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      {/* NAVBAR */}
-      <div className="flex items-center justify-between px-4 md:px-10 py-5 border-b border-gray-800">
-        <h1 className="text-xl md:text-2xl font-semibold tracking-wide text-yellow-400">
-          SNITCH.
+    <div className="bg-white text-black min-h-screen">
+      {/* 🔥 NAVBAR */}
+      <div className="flex items-center justify-between px-6 md:px-16 py-6 border-b">
+        <h1 className="text-xl md:text-2xl tracking-widest font-semibold font-[Playfair_Display]">
+          SNITCH
         </h1>
 
         <div>
           {user ? (
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gray-800 flex items-center justify-center text-sm">
-                {user?.fullname?.charAt(0) || "U"}
-              </div>
-              <span className="text-sm text-gray-300 hidden sm:block">
-                {user?.fullname}
-              </span>
+            <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-sm font-[Inter]">
+              {user?.fullname?.charAt(0) || "U"}
             </div>
           ) : (
             <button
               onClick={() => navigate("/register")}
-              className="bg-yellow-400 text-black px-5 py-2 rounded-md font-medium hover:bg-yellow-500 transition"
+              className="border px-5 py-2 text-sm font-[Poppins] hover:bg-black hover:text-white transition"
             >
               Sign In
             </button>
@@ -72,169 +77,118 @@ const Home = () => {
         </div>
       </div>
 
-      {/* HEADER */}
-      <div className="px-4 md:px-10 py-10">
-        <p className="text-yellow-400 text-xs tracking-widest mb-2">DISCOVER</p>
+      {/* 🔥 HERO SLIDER */}
+      <div className="relative w-full h-[90vh] overflow-hidden">
+        <img
+          key={heroImage}
+          src={heroImage}
+          alt="hero"
+          className="absolute w-full h-full object-contain bg-gray-100 transition-opacity duration-1000"
+        />
 
-        <h1 className="text-3xl md:text-5xl font-semibold leading-tight">
-          Explore Premium Listings
-        </h1>
+        {/* overlay */}
+        <div className="absolute inset-0 bg-black/30 flex flex-col items-center justify-center text-white text-center px-4">
+          <p className="text-xs tracking-[4px] mb-3 font-[Inter]">
+            NEW COLLECTION
+          </p>
 
-        <p className="text-gray-400 mt-3 max-w-xl text-sm md:text-base">
-          Discover curated fashion pieces from top sellers. Elevate your style
-          with unique collections.
-        </p>
+          <h1 className="text-4xl md:text-6xl font-[Playfair_Display]">
+            The Style Edits
+          </h1>
+
+          <button
+            onClick={scrollToProducts}
+            className="mt-6 px-8 py-3 border border-white text-sm tracking-widest font-[Poppins] hover:bg-white hover:text-black transition"
+          >
+            SHOP NOW
+          </button>
+        </div>
       </div>
 
-      {/* PRODUCT GRID */}
-      <div className="px-4 md:px-10 pb-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-        {products?.map((product, index) => (
-          <motion.div
-            key={product._id}
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            whileHover={{ y: -6 }}
-            className="relative group rounded-xl p-[3px] overflow-hidden"
-          >
-            {/* 🔥 GLOW BORDER FIXED */}
-            <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none">
-              <div className="absolute inset-0 rounded-xl bg-[linear-gradient(90deg,#facc15,#a855f7,#ef4444,#facc15)] animate-border"></div>
-              <div className="absolute inset-[3px] bg-black rounded-xl"></div>
-            </div>
-
-            {/* CARD */}
-            <div
-              className="bg-black rounded-xl overflow-hidden relative z-10 border border-gray-800 group-hover:border-yellow-400 transition"
+      {/* 🔥 CURATED PICKS */}
+      <div ref={productsRef} className="px-6 md:px-20 py-20">
+        <h2 className="text-center text-2xl md:text-3xl font-[Playfair_Display] tracking-wide">
+          Curated Picks 
+        </h2>
+          <p className="text-center text-gray-500 text-sm mb-16">“Fashion fades, but style is eternal.”</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {products?.map((product, index) => (
+            <motion.div
+              key={product._id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="group cursor-pointer hover:scale-105 transition duration-300"
               onClick={() => navigate(`/product/${product._id}`)}
               onMouseEnter={() => handleMouseEnter(product._id)}
               onMouseLeave={handleMouseLeave}
             >
               {/* IMAGE */}
-              <div className="w-full h-52 flex items-center justify-center bg-black overflow-hidden relative">
+              <div className="relative bg-gray-100">
                 <img
                   src={
                     selectedVariant[product._id]?.images?.[0]?.url ||
                     product.images?.[0]?.url
                   }
                   alt={product.title}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPreviewImage(product.images?.[0]?.url);
-                  }}
-                  className={`max-h-full max-w-full object-contain cursor-pointer transition-all duration-500 ${
-                    showOverlayId === product._id ? "scale-105" : ""
-                  }`}
+                  className="w-full h-[320px] object-contain transition duration-500 group-hover:opacity-90"
                 />
-
-                {/* 🔥 OVERLAY (single, fixed) */}
-                {showOverlayId === product._id && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.4 }}
-                    className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-                  >
-                    <motion.button
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.3 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/product/${product._id}`, {
-                          state: {
-                            selectedVariant:
-                              selectedVariant[product._id] || null,
-                          },
-                        });
-                      }}
-                      className="bg-yellow-400 text-black px-6 py-3 rounded-md font-semibold shadow-lg hover:bg-yellow-500 transition"
-                    >
-                      Buy Now
-                    </motion.button>
-                  </motion.div>
-                )}
               </div>
 
-              {/* CONTENT */}
-              <div className="p-4 flex flex-col gap-2">
-                <h2 className="text-base md:text-lg font-medium truncate">
-                  {product.title}
-                </h2>
+              {/* TEXT */}
+              <div className="mt-4 text-center">
+                <h3 className="text-sm font-[Poppins]">{product.title}</h3>
 
-                <p className="text-sm text-gray-400 line-clamp-2">
-                  {product.description}
-                </p>
-
-                <p className="text-yellow-400 font-semibold mt-2">
+                <p className="text-xs text-gray-500 mt-1 font-[Inter]">
                   {product.price?.currency}{" "}
                   {selectedVariant[product._id]?.price?.amount ||
                     product.price?.amount}
                 </p>
-                {/* VARIANT SELECTOR */}
-                {product.variants?.length > 0 && (
-                  <div className="flex gap-2 mt-2 flex-wrap">
-                    {product.variants.map((variant, i) => (
-                      <button
-                        key={i}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedVariant((prev) => ({
-                            ...prev,
-                            [product._id]: variant,
-                          }));
-                        }}
-                        className={`px-3 py-1 text-xs rounded-full border transition 
-        ${
-          selectedVariant[product._id] === variant
-            ? "bg-yellow-400 text-black border-yellow-400"
-            : "border-gray-600 text-gray-300 hover:border-yellow-400"
-        }`}
-                      >
-                        {Object.values(variant.attributes || {}).join(" / ") ||
-                          "Variant"}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-            </div>
-          </motion.div>
-        ))}
+
+              {/* VARIANTS */}
+              {product.variants?.length > 0 && (
+                <div className="flex gap-2 mt-3 flex-wrap justify-center">
+                  {product.variants.map((variant, i) => (
+                    <button
+                      key={i}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedVariant((prev) => ({
+                          ...prev,
+                          [product._id]: variant,
+                        }));
+                      }}
+                      className={`px-2 py-1 text-xs border rounded font-[Inter]
+                      ${
+                        selectedVariant[product._id] === variant
+                          ? "bg-black text-white"
+                          : "hover:bg-black hover:text-white"
+                      }`}
+                    >
+                      {Object.values(variant.attributes || {}).join(" / ")}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
       </div>
 
-      {/* IMAGE MODAL */}
+      {/* 🔥 IMAGE MODAL */}
       {previewImage && (
         <div
-          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50"
           onClick={() => setPreviewImage(null)}
         >
-          <motion.img
+          <img
             src={previewImage}
             alt="preview"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="max-h-full max-w-full rounded-lg shadow-2xl"
+            className="max-h-full max-w-full"
           />
         </div>
       )}
-
-      {/* BORDER ANIMATION */}
-      <style>
-        {`
-          @keyframes borderRun {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 300% 50%; }
-          }
-
-          .animate-border {
-            background-size: 300% 300%;
-            animation: borderRun 4s linear infinite;
-            filter: blur(2px);   
-            opacity: 1;
-}
-        `}
-      </style>
     </div>
   );
 };

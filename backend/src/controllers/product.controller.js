@@ -2,7 +2,10 @@ import productModel from "../models/product.model.js";
 import { uploadFile } from "../services/storage.service.js";
 
 export async function createProduct(req, res) {
-  const { title, description, priceAmount, priceCurrency } = req.body;
+  const { title, description, priceAmount, priceCurrency, stock, size } =
+    req.body;
+
+  const sizesArray = size ? size.split(",").map((s) => s.trim()) : [];
 
   const seller = req.user;
 
@@ -15,6 +18,16 @@ export async function createProduct(req, res) {
     }),
   );
 
+  // 🔥 CREATE VARIANTS FROM SIZES
+  const variants = sizesArray.map((s) => ({
+    attributes: { size: s },
+    stock: stock || 10,
+    price: {
+      amount: priceAmount,
+      currency: priceCurrency || "INR",
+    },
+  }));
+
   const product = await productModel.create({
     title,
     description,
@@ -24,14 +37,16 @@ export async function createProduct(req, res) {
     },
     images,
     seller: seller._id,
+    stock: variants.length > 0 ? 0 : stock || 10,
+    variants,
   });
+
   res.status(201).json({
     message: "Product created successfully",
     success: true,
     product,
   });
 }
-
 export async function getSellerProducts(req, res) {
   const seller = req.user;
   const products = await productModel.find({ seller: seller._id });

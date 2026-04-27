@@ -11,6 +11,8 @@ const CreateProduct = () => {
     description: "",
     priceAmount: "",
     priceCurrency: "INR",
+    stock: "",
+    size: "",
     images: [],
   });
 
@@ -65,7 +67,8 @@ const CreateProduct = () => {
       data.append("description", formData.description);
       data.append("priceAmount", formData.priceAmount);
       data.append("priceCurrency", formData.priceCurrency);
-
+      data.append("stock", formData.stock);
+      data.append("size", formData.size);
       formData.images.forEach((image) => {
         data.append("images", image);
       });
@@ -127,7 +130,7 @@ const CreateProduct = () => {
 
           {/* PRICE */}
           <div className="flex flex-col sm:flex-row gap-6">
-            <div className="w-full sm:w-2/3">
+            <div className="w-full sm:w-1/4">
               <label className="text-yellow-400 text-xs tracking-widest">
                 PRICE
               </label>
@@ -140,8 +143,21 @@ const CreateProduct = () => {
                 className="w-full mt-2 bg-transparent border-b border-gray-600 py-3 px-1 outline-none focus:border-yellow-400"
               />
             </div>
+            <div className="w-full sm:w-1/4">
+              <label className="text-yellow-400 text-xs tracking-widest">
+                SIZE
+              </label>
+              <input
+                type="text"
+                name="size"
+                value={formData.size}
+                onChange={handleChange}
+                placeholder="e.g. S, M, L"
+                className="w-full mt-2 bg-transparent border-b border-gray-600 py-3 px-1 outline-none focus:border-yellow-400"
+              />
+            </div>
 
-            <div className="w-full sm:w-1/3">
+            <div className="w-full sm:w-1/4">
               <label className="text-yellow-400 text-xs tracking-widest">
                 CURRENCY
               </label>
@@ -168,7 +184,21 @@ const CreateProduct = () => {
                   JPY
                 </option>
               </select>
+              
             </div>
+            <div className="w-full sm:w-1/4">
+                <label className="text-yellow-400 text-xs tracking-widest">
+                  STOCK
+                </label>
+                <input
+                  type="number"
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleChange}
+                  placeholder=""
+                  className="w-full mt-2 bg-transparent border-b border-gray-600 py-3 px-1 outline-none focus:border-yellow-400"
+                />
+              </div>
           </div>
         </div>
 

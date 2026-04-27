@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useProduct } from "../hooks/useProduct";
-import { motion } from "framer-motion";
 import useCart from "../../cart/hook/useCart";
 
 const ProductDetails = () => {
@@ -9,85 +8,113 @@ const ProductDetails = () => {
 
   const [product, setProduct] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
-  const [selectedVariant, setSelectedVariant] = useState("default");
+  const [selectedVariant, setSelectedVariant] = useState({});
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showCartPopup, setShowCartPopup] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [stockWarning, setStockWarning] = useState("");
 
   const { handleGetProductDetails } = useProduct();
-
   const { handleAddItem } = useCart();
+
+  const currentStock =
+    product?.variants?.length > 0 ? selectedVariant?.stock : product?.stock;
 
   async function fetchProductDetails() {
     const data = await handleGetProductDetails(productId);
     setProduct(data);
   }
 
+  const handleIncrease = () => {
+    if (quantity < currentStock) {
+      setQuantity((prev) => prev + 1);
+      setStockWarning("");
+    } else {
+      setStockWarning(`Only ${currentStock} items left in stock`);
+    }
+  };
+
+  const handleDecrease = () => {
+    if (quantity > 1) {
+      setQuantity((prev) => prev - 1);
+      setStockWarning("");
+    }
+  };
+
   useEffect(() => {
     fetchProductDetails();
   }, [productId]);
 
-  console.log({ product, selectedVariant });
+  useEffect(() => {
+    setQuantity(1);
+    setStockWarning("");
+  }, [selectedVariant]);
 
+  useEffect(() => {
+    if (product?.variants?.length > 0) {
+      setSelectedVariant(product.variants[0]);
+    }
+  }, [product]);
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400">
+      <div className="min-h-screen flex items-center justify-center text-gray-500 font-[Inter]">
         Loading product...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f7fb] dark:bg-black text-gray-900 dark:text-white px-4 md:px-10 py-10">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-        {/* 🖼 LEFT - IMAGE SECTION */}
-        <motion.div
-          initial={{ opacity: 0, x: -80 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="relative group"
-        >
-          {/* GLOW BORDER */}
-          <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition duration-500 pointer-events-none">
-            <div className="w-full h-full rounded-xl bg-[linear-gradient(90deg,#facc15,#a855f7,#ef4444,#facc15)] animate-border"></div>
+    <div className="min-h-screen bg-white text-black px-6 md:px-16 py-10">
+      <div className="flex justify-end mb-4">
+        <button className="border px-4 py-2 text-sm font-[Poppins] hover:bg-black hover:text-white transition">
+          🛒 Cart
+        </button>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 max-w-7xl mx-auto">
+        {/* 🔥 LEFT SIDE - IMAGE */}
+        <div className="flex flex-col gap-5">
+          {/* MAIN IMAGE */}
+          <div className="bg-gray-100">
+            <img
+              src={product.images?.[selectedImageIndex]?.url}
+              alt={product.title}
+              onClick={() =>
+                setPreviewImage(product.images?.[selectedImageIndex]?.url)
+              }
+              className="w-full h-[400px] md:h-[550px] object-contain cursor-pointer"
+            />
           </div>
 
-          {/* IMAGE CARD */}
-          <div className="bg-white/80 dark:bg-black backdrop-blur-md rounded-xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
-            <div className="flex flex-col gap-4">
-              {/* MAIN IMAGE */}
-              <motion.img
-                src={
-                  selectedVariant === "default"
-                    ? product.images?.[0]?.url
-                    : selectedVariant?.images?.[0]?.url
-                }
-                alt={product.title}
-                onClick={() =>
-                  setPreviewImage(
-                    selectedVariant === "default"
-                      ? product.images?.[0]?.url
-                      : selectedVariant?.images?.[0]?.url,
-                  )
-                }
-                whileHover={{ scale: 1.05 }}
-                className="w-full h-[350px] md:h-[450px] object-contain cursor-pointer"
-              />
-            </div>
+          {/* 🔥 THUMBNAILS */}
+          <div className="flex gap-3 overflow-x-auto">
+            {/* 🔹 PRODUCT IMAGES */}
+            {product.images?.map((img, i) => (
+              <div
+                key={`p-${i}`}
+                onClick={() => {
+                  setSelectedImageIndex(i);
+                }}
+                className={`w-16 h-20 border cursor-pointer ${
+                  selectedVariant === "default" && selectedImageIndex === i
+                    ? "border-black"
+                    : "border-gray-300"
+                }`}
+              >
+                <img src={img.url} className="w-full h-full object-cover" />
+              </div>
+            ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* 🧾 RIGHT - DETAILS */}
-        <motion.div
-          initial={{ opacity: 0, x: 80 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex flex-col gap-6"
-        >
+        {/* 🔥 RIGHT SIDE - DETAILS */}
+        <div className="flex flex-col gap-6">
           {/* TITLE */}
-          <h1 className="text-3xl md:text-4xl font-semibold leading-tight">
+          <h1 className="text-3xl md:text-4xl font-[Playfair_Display] leading-snug">
             {product.title}
           </h1>
 
           {/* PRICE */}
-          <p className="text-2xl font-semibold text-yellow-500">
+          <p className="text-xl font-[Poppins]">
             {product.price.currency}{" "}
             {selectedVariant === "default"
               ? product.price.amount
@@ -95,139 +122,175 @@ const ProductDetails = () => {
           </p>
 
           {/* DESCRIPTION */}
-          <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+          <p className="text-gray-600 leading-relaxed text-sm font-[Inter] max-w-md">
             {product.description}
           </p>
+
           {/* VARIANTS */}
-          
           {product.variants?.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-2">
-              <button
-            onClick={() => setSelectedVariant("default")}
-            className={`px-4 py-1 rounded-full border ${
-              selectedVariant === "default"
-                ? "bg-yellow-400 text-black"
-                : "border-gray-400"
-            }`}
-          >
-            Default
-          </button>
-              {product.variants.map((variant, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedVariant(variant)}
-                  className={`px-4 py-1 rounded-full text-sm border transition ${
-                    selectedVariant === variant
-                      ? "bg-yellow-400 text-black border-yellow-400"
-                      : "border-gray-400 text-gray-600 dark:text-gray-300 hover:border-yellow-400"
-                  }`}
-                >
-                  {Object.values(variant.attributes || {}).join(" / ") ||
-                    "Variant"}
-                </button>
-              ))}
+            <div>
+              <p className="text-sm mb-2 font-[Inter]">Select Variant</p>
+
+              <div className="flex gap-3 flex-wrap">
+                {product.variants.map((variant, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setSelectedVariant(variant);
+                    }}
+                    className={`px-4 py-1 border text-sm font-[Poppins] ${
+                      selectedVariant?._id === variant._id
+                        ? "bg-black text-white"
+                        : "border-gray-300"
+                    }`}
+                  >
+                    {Object.values(variant.attributes || {}).join(" / ")}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* QUANTITY */}
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-[Inter]">Quantity</span>
+
+              <div className="flex border">
+                <button onClick={handleDecrease} className="px-3 py-1">
+                  -
+                </button>
+
+                <span className="px-4 py-1">{quantity}</span>
+
+                <button onClick={handleIncrease} className="px-3 py-1">
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* STOCK */}
+            <p className="text-xs text-gray-500 font-[Inter]">
+              {currentStock > 0
+                ? `${currentStock} items available`
+                : "Out of stock"}
+            </p>
+
+            {/* WARNING */}
+            {stockWarning && (
+              <p className="text-xs text-red-500 font-[Inter]">
+                {stockWarning}
+              </p>
+            )}
+          </div>
 
           {/* BUTTONS */}
-          <div className="flex flex-col sm:flex-row gap-4 mt-6">
-            {/* ADD TO CART */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex-1 bg-gray-900 dark:bg-gray-800 text-white py-3 rounded-md hover:bg-yellow-400 hover:text-black transition"
-              onClick={() => {
-                handleAddItem({
+          <div className="flex flex-col gap-3 mt-4">
+            <button
+              disabled={currentStock === 0}
+              className="w-full border border-black py-3 font-[Poppins] text-sm hover:bg-black hover:text-white transition disabled:opacity-50"
+              onClick={async () => {
+                const payload = {
                   productId: product._id,
-                  variantId:
-                    selectedVariant === "default"
-                      ? product.variants?.[0]?._id // 👈 default variant
-                      : selectedVariant._id,
-                });
+                  quantity,
+                };
+
+                if (selectedVariant !== "default") {
+                  payload.variantId = selectedVariant._id;
+                }
+
+                await handleAddItem(payload);
+                setShowCartPopup(true);
               }}
             >
-              Add to Cart
-            </motion.button>
+              ADD TO CART
+            </button>
 
-            {/* BUY NOW */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="flex-1 bg-yellow-400 text-black py-3 rounded-md font-semibold hover:bg-yellow-500 transition shadow-lg shadow-yellow-400/20"
-            >
-              Buy Now
-            </motion.button>
+            <button className="w-full bg-black text-white py-3 font-[Poppins] text-sm hover:opacity-90">
+              BUY IT NOW
+            </button>
           </div>
-          {/* 🔥 VARIANT IMAGE STRIP */}
-          {product.variants?.length > 0 && (
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide">
-              <div
-                onClick={() => setSelectedVariant("default")}
-                className={`min-w-[70px] h-[80px] rounded-lg overflow-hidden cursor-pointer border-2
-  ${
-    selectedVariant === "default" ? "border-yellow-400" : "border-transparent"
-  }`}
-              >
-                <img
-                  src={product.images?.[0]?.url}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              {product.variants.map((variant, i) => (
-                <div
-                  key={i}
-                  onClick={() => setSelectedVariant(variant)}
-                  className={`min-w-[70px] h-[80px] rounded-lg overflow-hidden cursor-pointer border-2 transition
-            ${
-              selectedVariant === variant
-                ? "border-yellow-400"
-                : "border-transparent hover:border-yellow-400/50"
-            }
-          `}
-                >
-                  <img
-                    src={variant.images?.[0]?.url}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </motion.div>
+
+          {/* EXTRA INFO */}
+          <div className="grid grid-cols-3 text-center text-xs text-gray-500 pt-6 border-t font-[Inter]">
+            <div>Free Delivery</div>
+            <div>Easy Returns</div>
+            <div>Secure Pay</div>
+          </div>
+        </div>
       </div>
 
-      {/* 🖼 IMAGE MODAL */}
+      {/* 🔥 IMAGE MODAL */}
       {previewImage && (
         <div
-          className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
           onClick={() => setPreviewImage(null)}
         >
-          <motion.img
+          <img
             src={previewImage}
             alt="preview"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="max-h-full max-w-full rounded-lg shadow-2xl"
+            className="max-h-full max-w-full"
           />
         </div>
       )}
+      {showCartPopup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-[90%] max-w-md p-6 rounded-md shadow-xl relative">
+            {/* CLOSE */}
+            <button
+              onClick={() => setShowCartPopup(false)}
+              className="absolute top-3 right-3 text-gray-500"
+            >
+              ✕
+            </button>
 
-      {/* ✨ BORDER ANIMATION */}
-      <style>
-        {`
-          @keyframes borderRun {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-          }
+            {/* TITLE */}
+            <p className="text-sm text-green-600 mb-4 font-[Inter]">
+              ✔ Item added to your cart
+            </p>
 
-          .animate-border {
-            background-size: 200% 200%;
-            animation: borderRun 3s linear infinite;
-            filter: blur(6px);
-            opacity: 0.7;
-          }
-        `}
-      </style>
+            {/* PRODUCT INFO */}
+            <div className="flex gap-4">
+              <img
+                src={product.images?.[selectedImageIndex]?.url}
+                className="w-20 h-24 object-cover"
+              />
+
+              <div>
+                <h3 className="text-sm font-[Poppins]">{product.title}</h3>
+
+                <p className="text-xs text-gray-500 mt-1 font-[Inter]">
+                  Size:{" "}
+                  {selectedVariant === "default"
+                    ? "Default"
+                    : selectedVariant?.attributes?.size}
+                </p>
+
+                <p className="text-sm mt-2 font-[Poppins]">
+                  {product.price.currency}{" "}
+                  {selectedVariant === "default"
+                    ? product.price.amount
+                    : selectedVariant?.price?.amount}
+                </p>
+              </div>
+            </div>
+
+            {/* BUTTONS */}
+            <div className="mt-6 flex flex-col gap-3">
+              <button className="border py-2 text-sm font-[Poppins] hover:bg-black hover:text-white transition">
+                VIEW CART (0)
+              </button>
+
+              <button
+                onClick={() => setShowCartPopup(false)}
+                className="text-sm text-gray-500 hover:underline"
+              >
+                Continue shopping
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
