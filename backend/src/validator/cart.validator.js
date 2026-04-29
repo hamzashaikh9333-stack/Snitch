@@ -9,8 +9,19 @@ const validateRequest = (req, res, next) => {
 };
 
 export const validateAddToCart = [
-    param("productId").isMongoId().withMessage("Invalid product id"),
-    param("variantId").optional().isMongoId().withMessage("Invalid variant id"),
-    body("quantity").optional().isInt({min:1}).withMessage("Quantity should be at least 1"),
-    validateRequest,
-  ];
+  body("productId").isMongoId().withMessage("Invalid product id"),
+  body("variantId")
+    .optional({ checkFalsy: true })
+    .isMongoId()
+    .withMessage("Invalid variant id"),
+  body("quantity")
+    .isInt({ min: 1 })
+    .withMessage("Quantity must be at least 1"),
+  validateRequest,
+];
+
+export const validateIncrementCartItemQuantity = [
+  param("productId").isMongoId().withMessage("Invalid product id"),
+  param("variantId").optional({ checkFalsy: true }).isMongoId().withMessage("Invalid variant id"),
+  validateRequest,
+]

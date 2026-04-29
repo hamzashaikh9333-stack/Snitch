@@ -1,7 +1,14 @@
 import { Router } from "express";
 import { authenticateUser } from "../middleware/auth.middleware.js";
-import { validateAddToCart } from "../validator/cart.validator.js";
-import { addToCart, getCart } from "../controllers/cart.controller.js";
+import {
+  validateAddToCart,
+  validateIncrementCartItemQuantity,
+} from "../validator/cart.validator.js";
+import {
+  addToCart,
+  getCart,
+  incrementCartItemQuantity,
+} from "../controllers/cart.controller.js";
 
 const cartRouter = Router();
 
@@ -12,20 +19,11 @@ const cartRouter = Router();
     arguments : productId,variantId quantity
 */
 
-// WITHOUT variant
 cartRouter.post(
-  "/add/:productId",
+  "/add",
   authenticateUser,
   validateAddToCart,
-  addToCart,
-);
-
-// WITH variant
-cartRouter.post(
-  "/add/:productId/:variantId",
-  authenticateUser,
-  validateAddToCart,
-  addToCart,
+  addToCart
 );
 
 /*
@@ -37,5 +35,12 @@ cartRouter.post(
 
 */
 cartRouter.get("/", authenticateUser, getCart);
+
+cartRouter.patch(
+  "/quantity/increment/:productId",
+  authenticateUser,
+  validateIncrementCartItemQuantity,
+  incrementCartItemQuantity,
+);
 
 export default cartRouter;

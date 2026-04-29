@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { useProduct } from "../hooks/useProduct";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import NavCart from "../../cart/components/NavCart";
 
 const Home = () => {
   const products = useSelector((state) => state.product.products);
@@ -56,7 +57,8 @@ const Home = () => {
   return (
     <div className="bg-white text-black min-h-screen">
       {/* 🔥 NAVBAR */}
-      <div className="flex items-center justify-between px-6 md:px-16 py-6 border-b">
+      <NavCart />
+      {/* <div className="flex items-center justify-between px-6 md:px-16 py-6 border-b">
         <h1 className="text-xl md:text-2xl tracking-widest font-semibold font-[Playfair_Display]">
           SNITCH
         </h1>
@@ -75,13 +77,13 @@ const Home = () => {
             </button>
           )}
         </div>
-      </div>
+      </div> */}
 
       {/* 🔥 HERO SLIDER */}
       <div className="relative w-full h-[90vh] overflow-hidden">
         <img
           key={heroImage}
-          src={heroImage}
+          src={heroImage || null}
           alt="hero"
           className="absolute w-full h-full object-contain bg-gray-100 transition-opacity duration-1000"
         />
@@ -108,9 +110,11 @@ const Home = () => {
       {/* 🔥 CURATED PICKS */}
       <div ref={productsRef} className="px-6 md:px-20 py-20">
         <h2 className="text-center text-2xl md:text-3xl font-[Playfair_Display] tracking-wide">
-          Curated Picks 
+          Curated Picks
         </h2>
-          <p className="text-center text-gray-500 text-sm mb-16">“Fashion fades, but style is eternal.”</p>
+        <p className="text-center text-gray-500 text-sm mb-16">
+          “Fashion fades, but style is eternal.”
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {products?.map((product, index) => (
             <motion.div
