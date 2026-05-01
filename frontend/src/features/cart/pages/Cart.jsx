@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import useCart from "../hook/useCart";
 import { useNavigate } from "react-router-dom";
+import { useRazorpay } from "react-razorpay";
 
 const Cart = () => {
   const cartItems = useSelector((state) => state.cart.items);
   const { handleGetCartItems, handleIncrementCartItem } = useCart();
   const navigate = useNavigate();
+  const { error, isLoading, Razorpay } = useRazorpay();
 
   const [selectedImage, setSelectedImage] = useState(null);
 
@@ -16,9 +18,34 @@ const Cart = () => {
 
   // ✅ TOTAL PRICE
   const subtotal = cartItems?.reduce(
-    (acc, item) => acc + item.price.amount * (item.quantity || 1),
+    (acc, item) => acc + item.items.price.amount * (item.items.quantity || 1),
     0,
   );
+
+  const handlePayment = () => {
+    const options = {
+      key: "YOUR_RAZORPAY_KEY",
+      amount: 50000, // Amount in paise
+      currency: "INR",
+      name: "Test Company",
+      description: "Test Transaction",
+      order_id: "order_9A33XWu170gUtm", // Generate order_id on server
+      handler: (response) => {
+        console.log(response);
+        alert("Payment Successful!");
+      },
+      prefill: {
+        name: "John Doe",
+        email: "john.doe@example.com",
+        contact: "9999999999",
+      },
+      theme: {
+        color: "#F37254",
+      },
+    };
+    const razorpayInstance = new Razorpay(options);
+    razorpayInstance.open();
+  };
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white px-6 md:px-20 py-14">
@@ -39,26 +66,27 @@ const Cart = () => {
             cartItems.map((item) => {
               // ✅ CORRECT IMAGE
               const image =
-                item.variantData?.images?.[0]?.url ||
-                item.productId?.images?.[0]?.url;
+                item.items.variantData?.images?.[0]?.url ||
+                item.items.productId?.images?.[0]?.url;
 
               // ✅ CORRECT TEXT
-              const variantText = item.variantData?.attributes
-                ? Object.values(item.variantData.attributes).join(" / ")
-                : item.productId?.description;
+              const variantText = item.items.variantData?.attributes
+                ? Object.values(item.items.variantData.attributes).join(" / ")
+                : item.items.productId?.description;
 
               // ✅ ITEM TOTAL
-              const itemTotal = item.price.amount * (item.quantity || 1);
+              const itemTotal =
+                item.items.price.amount * (item.items.quantity || 1);
 
               return (
                 <div
-                  key={item._id}
+                  key={item.items._id}
                   className="flex gap-6 bg-[#181818] p-5 rounded-xl border border-[#2a2a2a] hover:border-[#d4af37]/40 transition"
                 >
                   {/* IMAGE */}
                   <img
                     src={image || null}
-                    alt={item.productId?.title}
+                    alt={item.items.productId?.title}
                     onClick={() => setSelectedImage(image)}
                     className="w-28 h-36 object-cover rounded-lg cursor-pointer hover:scale-105 transition"
                   />
@@ -68,7 +96,7 @@ const Cart = () => {
                     <div>
                       {/* PRODUCT NAME */}
                       <h1 className="text-sm text-[#d4af37] tracking-widest">
-                        {item.productId?.title}
+                        {item.items.productId?.title}
                       </h1>
 
                       {/* VARIANT / DESCRIPTION */}
@@ -85,13 +113,13 @@ const Cart = () => {
                           -
                         </button>
 
-                        <span className="px-3">{item.quantity || 1}</span>
+                        <span className="px-3">{item.items.quantity || 1}</span>
 
                         <button
                           onClick={async () => {
                             await handleIncrementCartItem({
-                              productId: item.productId._id,
-                              variantId: item.variantId || null,
+                              productId: item.items.productId._id,
+                              variantId: item.items.variantId || null,
                             });
 
                             // ✅ refresh cart after update
@@ -106,7 +134,7 @@ const Cart = () => {
 
                     {/* PRICE */}
                     <p className="text-lg font-semibold mt-5 text-[#d4af37]">
-                      ₹ {itemTotal}
+                      ₹ {new Intl.NumberFormat("en-IN").format(itemTotal)}
                     </p>
                   </div>
                 </div>
@@ -138,7 +166,7 @@ const Cart = () => {
             <div className="flex justify-between items-center text-gray-400 tracking-wide">
               <span className="uppercase text-xs">Subtotal</span>
               <span className="text-white text-base font-medium">
-                INR {subtotal}
+                INR {new Intl.NumberFormat("en-IN").format(subtotal)}
               </span>
             </div>
 
@@ -163,13 +191,16 @@ const Cart = () => {
                 Total
               </span>
               <span className="text-[#d4af37] text-2xl font-semibold tracking-wide">
-                INR {subtotal}
+                INR {new Intl.NumberFormat("en-IN").format(subtotal)}
               </span>
             </div>
           </div>
 
           {/* BUTTON */}
-          <button className="mt-10 w-full bg-[#d4af37] text-black py-3 text-sm tracking-[2px] uppercase rounded-md hover:opacity-90 transition">
+          <button
+            onClick={handlePayment}
+            className="mt-10 w-full bg-[#d4af37] text-black py-3 text-sm tracking-[2px] uppercase rounded-md hover:opacity-90 transition"
+          >
             Proceed to Checkout
           </button>
 

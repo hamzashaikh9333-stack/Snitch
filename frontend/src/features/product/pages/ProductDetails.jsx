@@ -171,39 +171,51 @@ const ProductDetails = () => {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500 mt-2">
+              <p
+                className={`font-semibold mt-4 px-3 py-1 rounded-full w-fit ${
+                  currentStock > 0
+                    ? "bg-green-500/10 text-green-700"
+                    : "bg-red-500/10 text-red-400"
+                }`}
+              >
                 {currentStock > 0
                   ? `${currentStock} available`
                   : "Out of stock"}
               </p>
 
               {stockWarning && (
-                <p className="text-red-500 text-xs">{stockWarning}</p>
+                <p className="text-red-500 text-sm">{stockWarning}</p>
               )}
             </div>
 
             {/* BUTTONS */}
             <div className="flex flex-col gap-3 mt-4">
               <button
-                disabled={currentStock === 0}
-                className="border py-3 hover:bg-black hover:text-white"
-                onClick={async () => {
-                  try {
-                    await handleAddItem({
-                      productId: product._id,
-                      variantId: selectedVariant?._id || null,
-                      quantity, // ✅ important
-                    });
+  disabled={currentStock === 0}
+  className={`py-3 border transition ${
+    currentStock === 0
+      ? "bg-gray-300 text-gray-500 cursor-not-allowed border-gray-300"
+      : "border-black hover:bg-black hover:text-white"
+  }`}
+  onClick={async () => {
+    if (currentStock === 0) return; // extra safety
 
-                    setShowCartPopup(true);
-                    setQuantity(1); // ✅ reset UI (important)
-                  } catch (error) {
-                    console.error("Add to cart failed", error);
-                  }
-                }}
-              >
-                ADD TO CART
-              </button>
+    try {
+      await handleAddItem({
+        productId: product._id,
+        variantId: selectedVariant?._id || null,
+        quantity,
+      });
+
+      setShowCartPopup(true);
+      setQuantity(1);
+    } catch (error) {
+      console.error("Add to cart failed", error);
+    }
+  }}
+>
+  {currentStock === 0 ? "OUT OF STOCK" : "ADD TO CART"}
+</button>
 
               <button className="bg-black text-white py-3">BUY NOW</button>
             </div>

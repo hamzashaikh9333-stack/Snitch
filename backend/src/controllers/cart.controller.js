@@ -91,16 +91,73 @@ export const addToCart = async (req, res) => {
 };
 
 export const getCart = async (req, res) => {
-  let cart = await cartModel
-    .findOne({ userId: req.user._id })
-    .populate("items.productId");
+  let cart = await cartModel.aggregate([
+    { $unwind: { path: "$items" } },
+    {
+      $lookup: {
+        from: "products",
+        localField: "items.productId",
+        foreignField: "_id",
+        as: "items.productId",
+      },
+    },
+    { $unwind: { path: "$items.productId" } },
+    {
+      $unwind: {
+        path: "$items.productId.variants",
+      },
+    },
+    {
+      $match: {
+        $expr: {
+          $or: [
+            {
+              $eq: ["$items.variantId", "$items.productId.variants._id"],
+            },
+            { $eq: ["$items.variantId", null] },
+          ],
+        },
+      },
+    },
+    {
+      $addFields: {
+        itemPrice: {
+          $multiply: [
+            "$items.quantity",
+            "$items.productId.variants.price.amount",
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        total: { $sum: "$itemPrice" },
+        items: {
+          $push: {
+            items: "$items",
+            itemPrice: "$itemPrice",
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        currency: {
+          $first: "$items.items.price.currency",
+        },
+      },
+    },
+  ]);
 
-  if (!cart) {
-    cart = await cartModel.create({ userId: req.user._id });
-  }
+  if (!cart || cart.length === 0) {
+  cart = await cartModel.create({ userId: req.user._id });
+}
 
-  // 🔥 ADD THIS BLOCK
-  const updatedItems = cart.items.map((item) => {
+const cartData = cart[0];
+
+  
+  const updatedItems = cartData.items.map((item) => {
     let variantData = null;
 
     if (item.variantId) {
@@ -110,7 +167,7 @@ export const getCart = async (req, res) => {
     }
 
     return {
-      ...item._doc,
+      ...item,
       variantData, // ✅ attach full variant
     };
   });
