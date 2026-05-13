@@ -3,18 +3,19 @@ import cookieParser from "cookie-parser";
 import morgon from "morgan";
 import authRouter from "./routes/auth.routes.js";
 import passport from "passport";
-import {Strategy as GoogleStrategy} from "passport-google-oauth20"
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { config } from "./database/config.js";
 import productRouter from "./routes/product.routes.js";
 import cartRouter from "./routes/cart.routes.js";
 import cors from "cors";
 
-
 const app = express();
-app.use(cors({
-  origin: process.env.FRONTEND_URL,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  }),
+);
 
 app.use(morgon("dev"));
 app.use(express.json());
@@ -23,13 +24,18 @@ app.use(cookieParser());
 
 app.use(passport.initialize());
 
-passport.use(new GoogleStrategy({
-    clientID: config.GOOGLE_CLIENT_ID,
-    clientSecret: config.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/api/auth/google/callback"
-},(accessToken,refreshToken,profile,done)=>{
-    return done(null,profile)
-}))
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: config.GOOGLE_CLIENT_ID,
+      clientSecret: config.GOOGLE_CLIENT_SECRET,
+      callbackURL: "https://snitch-30g4.onrender.com/api/auth/google/callback",
+    },
+    (accessToken, refreshToken, profile, done) => {
+      return done(null, profile);
+    },
+  ),
+);
 
 app.use("/api/auth", authRouter);
 
