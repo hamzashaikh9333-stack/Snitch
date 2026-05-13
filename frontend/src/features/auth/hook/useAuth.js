@@ -1,11 +1,11 @@
 import { setError, setLoading, setUser , clearUser} from "../state/auth.slice";
 import { register, login, getMe, logout } from "../api/auth.api";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router";
+
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+  
   async function handleRegister({
     fullname,
     email,
@@ -36,8 +36,6 @@ export const useAuth = () => {
     await logout();
 
     dispatch(clearUser());
-
-    navigate("/login");
   }
 
   async function handleGetme() {

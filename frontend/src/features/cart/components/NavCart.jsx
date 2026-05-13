@@ -6,6 +6,12 @@ import { useAuth } from "../../auth/hook/useAuth";
 const NavCart = () => {
   const navigate = useNavigate();
   const { handleLogout } = useAuth();
+  async function onLogout() {
+    await handleLogout();
+
+    navigate("/login");
+  }
+
   const user = useSelector((state) => state.auth.user);
   const cartItems = useSelector((state) => state.cart?.items) || [];
   return (
@@ -38,7 +44,7 @@ const NavCart = () => {
               </Link>
             )}
             <button
-              onClick={handleLogout}
+              onClick={onLogout}
               className="transition-colors hover:text-red-500 text-xs font-bold"
             >
               Logout
