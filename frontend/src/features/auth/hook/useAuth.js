@@ -1,6 +1,7 @@
 import { setError, setLoading, setUser } from "../state/auth.slice";
-import { register, login, getMe } from "../api/auth.api";
+import { register, login, getMe, logout } from "../api/auth.api";
 import { useDispatch } from "react-redux";
+import { Navigate } from "react-router";
 
 export const useAuth = () => {
   const dispatch = useDispatch();
@@ -30,6 +31,12 @@ export const useAuth = () => {
     return data.user;
   }
 
+  async function handleLogout() {
+    await logout();
+    dispatch(setUser(null));
+    Navigate("/login");
+  }
+
   async function handleGetme() {
     try {
       dispatch(setLoading(true));
@@ -42,5 +49,5 @@ export const useAuth = () => {
     }
   }
 
-  return { handleRegister, handleLogin, handleGetme };
+  return { handleRegister, handleLogin, handleGetme, handleLogout };
 };

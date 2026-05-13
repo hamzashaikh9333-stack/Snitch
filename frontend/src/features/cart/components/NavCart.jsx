@@ -1,9 +1,11 @@
 import React from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router";
+import { useAuth } from "../../auth/hook/useAuth";
 
 const NavCart = () => {
   const navigate = useNavigate();
+  const { handleLogout } = useAuth();
   const user = useSelector((state) => state.auth.user);
   const cartItems = useSelector((state) => state.cart?.items) || [];
   return (
@@ -24,9 +26,9 @@ const NavCart = () => {
       >
         {user ? (
           <>
-            <span 
-            className="text-xs"
-            style={{ color: "#1b1c1a" }}>{user.fullname}</span>
+            <span className="text-xs" style={{ color: "#1b1c1a" }}>
+              {user.fullname}
+            </span>
             {user.role === "seller" && (
               <Link
                 to="/seller/dashboard"
@@ -35,6 +37,12 @@ const NavCart = () => {
                 Seller Dashboard
               </Link>
             )}
+            <button
+              onClick={handleLogout}
+              className="transition-colors hover:text-red-500 text-xs font-bold"
+            >
+              Logout
+            </button>
             <Link
               to="/cart"
               className="relative flex items-center hover:opacity-70 transition-opacity"

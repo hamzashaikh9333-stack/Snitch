@@ -78,6 +78,19 @@ export const login = async (req, res) => {
   await sendTokenResponse(user, res, "User logged in successfully");
 };
 
+export const logout = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
+};
+
 export const googleCallback = async (req, res) => {
   const { id, displayName, emails, photos } = req.user;
 

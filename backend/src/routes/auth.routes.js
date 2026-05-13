@@ -7,6 +7,7 @@ import {
   getMe,
   googleCallback,
   login,
+  logout,
   register,
 } from "../controllers/auth.controller.js";
 import passport from "passport";
@@ -17,6 +18,7 @@ const router = Router();
 
 router.post("/register", validateRegister, register);
 router.post("/login", validateLoginUser, login);
+router.post("/logout", logout);
 router.get("/me",authenticateUser,getMe);
 
 router.get(
@@ -30,8 +32,10 @@ router.get(
     session: false,
     failureRedirect:
       config.NODE_ENV == "development"
-        ? "http://localhost:5173/login"
-        : "/login",
+        ? config.FRONTEND_URL + "/login"
+        : config.FRONTEND_URL,
+    successRedirect: config.FRONTEND_URL + "/",
+    
   }),
   googleCallback,
 );

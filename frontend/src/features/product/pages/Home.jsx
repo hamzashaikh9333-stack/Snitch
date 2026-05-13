@@ -58,26 +58,7 @@ const Home = () => {
     <div className="bg-white text-black min-h-screen">
       {/* 🔥 NAVBAR */}
       <NavCart />
-      {/* <div className="flex items-center justify-between px-6 md:px-16 py-6 border-b">
-        <h1 className="text-xl md:text-2xl tracking-widest font-semibold font-[Playfair_Display]">
-          SNITCH
-        </h1>
-
-        <div>
-          {user ? (
-            <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-sm font-[Inter]">
-              {user?.fullname?.charAt(0) || "U"}
-            </div>
-          ) : (
-            <button
-              onClick={() => navigate("/register")}
-              className="border px-5 py-2 text-sm font-[Poppins] hover:bg-black hover:text-white transition"
-            >
-              Sign In
-            </button>
-          )}
-        </div>
-      </div> */}
+      
 
       {/* 🔥 HERO SLIDER */}
       <div className="relative w-full h-[90vh] overflow-hidden">
