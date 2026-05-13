@@ -38,17 +38,19 @@ export const useAuth = () => {
     dispatch(clearUser());
   }
 
-  async function handleGetme() {
-    try {
-      dispatch(setLoading(true));
-      const data = await getMe();
-      dispatch(setUser(data.user));
-    } catch (err) {
-      dispatch(setError(err.message));
-    } finally {
-      dispatch(setLoading(false));
-    }
+async function handleGetme() {
+  try {
+    dispatch(setLoading(true));
+
+    const data = await getMe();
+
+    dispatch(setUser(data.user));
+  } catch (err) {
+    dispatch(clearUser());
+  } finally {
+    dispatch(setLoading(false));
   }
+}
 
   return { handleRegister, handleLogin, handleGetme, handleLogout };
 };

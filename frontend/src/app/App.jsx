@@ -6,11 +6,10 @@ import { useAuth } from "../features/auth/hook/useAuth";
 import { useSelector } from "react-redux";
 import { useEffect } from "react";
 const App = () => {
-
   const { handleGetme } = useAuth();
-  const user = useSelector(state=>state.auth.user)
+  const user = useSelector((state) => state.auth.user);
 
-  console.log(user)
+  console.log(user);
 
   useEffect(() => {
     handleGetme();
