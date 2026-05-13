@@ -3,7 +3,7 @@ import React from "react";
 const GoogleButton = () => {
   return (
     <a
-      href="/api/auth/google"
+      href={`${import.meta.env.VITE_BACKEND_URL}/api/auth/google`}
       className="flex items-center justify-center gap-3 w-full h-12 bg-gray-900 border border-gray-700 rounded-md hover:bg-gray-800 transition shadow-md"
     >
       <img
