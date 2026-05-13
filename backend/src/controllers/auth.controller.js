@@ -20,6 +20,7 @@ async function sendTokenResponse(user, res, message) {
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
   });
   res.status(200).json({
     message,
@@ -88,6 +89,7 @@ export const logout = async (req, res) => {
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
     expires: new Date(0),
+    path: "/",
   });
 
   return res.status(200).json({
@@ -122,11 +124,14 @@ export const googleCallback = async (req, res) => {
     },
   );
 
+  const isProduction = process.env.NODE_ENV === "production";
+
   res.cookie("token", token, {
     httpOnly: true,
-    secure: true,
-    sameSite: "none",
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
   });
 
   res.redirect("https://snitch-98i6.vercel.app/");
