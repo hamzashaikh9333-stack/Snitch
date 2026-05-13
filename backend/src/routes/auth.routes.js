@@ -34,8 +34,6 @@ router.get(
       config.NODE_ENV == "development"
         ? config.FRONTEND_URL + "/login"
         : config.FRONTEND_URL,
-    successRedirect: config.FRONTEND_URL + "/",
-    
   }),
   googleCallback,
 );

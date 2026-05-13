@@ -134,7 +134,7 @@ export const googleCallback = async (req, res) => {
     path: "/",
   });
 
-  res.redirect("https://snitch-98i6.vercel.app/");
+  res.redirect(`${config.FRONTEND_URL}/`);
 };
 
 export const getMe = async (req, res) => {
