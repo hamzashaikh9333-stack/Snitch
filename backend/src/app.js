@@ -7,10 +7,14 @@ import {Strategy as GoogleStrategy} from "passport-google-oauth20"
 import { config } from "./database/config.js";
 import productRouter from "./routes/product.routes.js";
 import cartRouter from "./routes/cart.routes.js";
+import cors from "cors";
 
 
 const app = express();
-
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
 
 app.use(morgon("dev"));
 app.use(express.json());
