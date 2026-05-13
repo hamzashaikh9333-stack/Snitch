@@ -1,10 +1,11 @@
-import { setError, setLoading, setUser } from "../state/auth.slice";
+import { setError, setLoading, setUser , clearUser} from "../state/auth.slice";
 import { register, login, getMe, logout } from "../api/auth.api";
 import { useDispatch } from "react-redux";
-import { Navigate } from "react-router";
+import { useNavigate } from "react-router";
 
 export const useAuth = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   async function handleRegister({
     fullname,
     email,
@@ -19,7 +20,7 @@ export const useAuth = () => {
       password,
       isSeller,
     });
-    
+
     dispatch(setUser(data.user));
     return data.user;
   }
@@ -33,8 +34,10 @@ export const useAuth = () => {
 
   async function handleLogout() {
     await logout();
-    dispatch(setUser(null));
-    Navigate("/login");
+
+    dispatch(clearUser());
+
+    navigate("/login");
   }
 
   async function handleGetme() {
