@@ -1,56 +1,53 @@
-import { setError, setLoading, setUser , clearUser} from "../state/auth.slice";
-import { register, login, getMe, logout } from "../api/auth.api";
+import { useCallback } from "react";
 import { useDispatch } from "react-redux";
-
+import { clearUser, setLoading, setUser } from "../state/auth.slice";
+import { getMe, login, logout, register } from "../api/auth.api";
 
 export const useAuth = () => {
   const dispatch = useDispatch();
-  
-  async function handleRegister({
-    fullname,
-    email,
-    contact,
-    password,
-    isSeller = false,
-  }) {
-    const data = await register({
-      fullname,
-      email,
-      contact,
-      password,
-      isSeller,
-    });
 
-    dispatch(setUser(data.user));
-    return data.user;
-  }
+  const handleRegister = useCallback(
+    async ({ fullname, email, contact, password, isSeller = false }) => {
+      const data = await register({
+        fullname,
+        email,
+        contact,
+        password,
+        isSeller,
+      });
 
-  async function handleLogin({ email, password }) {
-    const data = await login({ email, password });
+      dispatch(setUser(data.user));
+      return data.user;
+    },
+    [dispatch],
+  );
 
-    dispatch(setUser(data.user));
-    return data.user;
-  }
+  const handleLogin = useCallback(
+    async ({ email, password }) => {
+      const data = await login({ email, password });
 
-  async function handleLogout() {
+      dispatch(setUser(data.user));
+      return data.user;
+    },
+    [dispatch],
+  );
+
+  const handleLogout = useCallback(async () => {
     await logout();
-
     dispatch(clearUser());
-  }
+  }, [dispatch]);
 
-async function handleGetme() {
-  try {
-    dispatch(setLoading(true));
-
-    const data = await getMe();
-
-    dispatch(setUser(data.user));
-  } catch (err) {
-    dispatch(clearUser());
-  } finally {
-    dispatch(setLoading(false));
-  }
-}
+  const handleGetme = useCallback(async () => {
+    try {
+      dispatch(setLoading(true));
+      const data = await getMe();
+      dispatch(setUser(data.user));
+    } catch {
+      dispatch(clearUser());
+    } finally {
+      dispatch(setLoading(false));
+    }
+  }, [dispatch]);
 
   return { handleRegister, handleLogin, handleGetme, handleLogout };
 };

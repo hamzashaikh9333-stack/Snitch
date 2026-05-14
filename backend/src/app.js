@@ -10,12 +10,13 @@ import cartRouter from "./routes/cart.routes.js";
 import cors from "cors";
 
 const app = express();
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true,
-  }),
-);
+app.use(cors({
+   origin: [
+      "http://localhost:5173",
+      "https://snitch-98i6.vercel.app"
+   ],
+   credentials: true
+}));
 
 app.use(morgon("dev"));
 app.use(express.json());

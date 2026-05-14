@@ -26,7 +26,6 @@ export async function getProductDetails(productId) {
 }
 
 export async function addProductVariant(productId, newProductVariant) {
-  console.log(newProductVariant);
   const formData = new FormData();
   newProductVariant.images.forEach((image) => {
     formData.append("images", image.file);

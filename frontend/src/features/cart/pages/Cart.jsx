@@ -1,55 +1,54 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import useCart from "../hook/useCart";
 import { useNavigate } from "react-router-dom";
-import { useRazorpay } from "react-razorpay";
+import useCart from "../hook/useCart";
+
+const getCartItem = (cartEntry) => cartEntry?.items || cartEntry;
+
+const getProductId = (item) => {
+  if (!item?.productId) return null;
+  return typeof item.productId === "string" ? item.productId : item.productId._id;
+};
+
+const formatPrice = (amount) => new Intl.NumberFormat("en-IN").format(amount || 0);
 
 const Cart = () => {
   const cartItems = useSelector((state) => state.cart.items);
   const { handleGetCartItems, handleIncrementCartItem } = useCart();
   const navigate = useNavigate();
-  const { error, isLoading, Razorpay } = useRazorpay();
 
   const [selectedImage, setSelectedImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [cartError, setCartError] = useState("");
 
   useEffect(() => {
-    handleGetCartItems();
-  }, []);
+    async function fetchCart() {
+      try {
+        setCartError("");
+        await handleGetCartItems();
+      } catch (error) {
+        setCartError(error.response?.data?.message || "Unable to load cart");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  // ✅ TOTAL PRICE
-  const subtotal = cartItems?.reduce(
-    (acc, item) => acc + item.items.price.amount * (item.items.quantity || 1),
-    0,
+    fetchCart();
+  }, [handleGetCartItems]);
+
+  const subtotal = useMemo(
+    () =>
+      cartItems.reduce((acc, cartEntry) => {
+        const item = getCartItem(cartEntry);
+        const amount = Number(item?.price?.amount || 0);
+        const quantity = Number(item?.quantity || 1);
+        return acc + amount * quantity;
+      }, 0),
+    [cartItems],
   );
-
-  const handlePayment = () => {
-    const options = {
-      key: "YOUR_RAZORPAY_KEY",
-      amount: 50000, // Amount in paise
-      currency: "INR",
-      name: "Test Company",
-      description: "Test Transaction",
-      order_id: "order_9A33XWu170gUtm", // Generate order_id on server
-      handler: (response) => {
-        console.log(response);
-        alert("Payment Successful!");
-      },
-      prefill: {
-        name: "John Doe",
-        email: "john.doe@example.com",
-        contact: "9999999999",
-      },
-      theme: {
-        color: "#F37254",
-      },
-    };
-    const razorpayInstance = new Razorpay(options);
-    razorpayInstance.open();
-  };
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white px-6 md:px-20 py-14">
-      {/* HEADER */}
       <div className="mb-12">
         <h1 className="text-4xl tracking-wide font-light">
           YOUR <span className="text-[#d4af37] font-semibold">CART</span>
@@ -59,71 +58,79 @@ const Cart = () => {
         </p>
       </div>
 
+      {cartError && (
+        <p className="mb-6 rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {cartError}
+        </p>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-12">
-        {/* LEFT */}
         <div className="lg:col-span-2 space-y-8">
-          {cartItems?.length > 0 ? (
-            cartItems.map((item) => {
-              // ✅ CORRECT IMAGE
+          {loading ? (
+            <p className="text-gray-500">Loading cart...</p>
+          ) : cartItems.length > 0 ? (
+            cartItems.map((cartEntry) => {
+              const item = getCartItem(cartEntry);
+              const product = item?.productId || {};
+              const productId = getProductId(item);
               const image =
-                item.items.variantData?.images?.[0]?.url ||
-                item.items.productId?.images?.[0]?.url;
-
-              // ✅ CORRECT TEXT
-              const variantText = item.items.variantData?.attributes
-                ? Object.values(item.items.variantData.attributes).join(" / ")
-                : item.items.productId?.description;
-
-              // ✅ ITEM TOTAL
-              const itemTotal =
-                item.items.price.amount * (item.items.quantity || 1);
+                item?.variantData?.images?.[0]?.url || product?.images?.[0]?.url || "";
+              const variantAttributes = item?.variantData?.attributes || {};
+              const variantText =
+                Object.keys(variantAttributes).length > 0
+                  ? Object.values(variantAttributes).join(" / ")
+                  : product?.description || "Default";
+              const quantity = Number(item?.quantity || 1);
+              const itemTotal = Number(item?.price?.amount || 0) * quantity;
+              const key = `${item?._id || productId}-${item?.variantId || "default"}`;
 
               return (
                 <div
-                  key={item.items._id}
+                  key={key}
                   className="flex gap-6 bg-[#181818] p-5 rounded-xl border border-[#2a2a2a] hover:border-[#d4af37]/40 transition"
                 >
-                  {/* IMAGE */}
-                  <img
-                    src={image || null}
-                    alt={item.items.productId?.title}
-                    onClick={() => setSelectedImage(image)}
-                    className="w-28 h-36 object-cover rounded-lg cursor-pointer hover:scale-105 transition"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => image && setSelectedImage(image)}
+                    className="w-28 h-36 shrink-0 overflow-hidden rounded-lg bg-[#222]"
+                    disabled={!image}
+                  >
+                    {image && (
+                      <img
+                        src={image}
+                        alt={product?.title || "Cart item"}
+                        className="w-full h-full object-cover hover:scale-105 transition"
+                      />
+                    )}
+                  </button>
 
-                  {/* DETAILS */}
                   <div className="flex flex-col justify-between w-full">
                     <div>
-                      {/* PRODUCT NAME */}
                       <h1 className="text-sm text-[#d4af37] tracking-widest">
-                        {item.items.productId?.title}
+                        {product?.title || "Product unavailable"}
                       </h1>
 
-                      {/* VARIANT / DESCRIPTION */}
                       <h2 className="text-lg font-medium mt-1 tracking-wide">
                         {variantText}
                       </h2>
 
-                      {/* QUANTITY */}
                       <div className="flex items-center gap-3 mt-3">
                         <button
-                          className="px-3 py-1 border border-gray-600 hover:border-[#d4af37]"
-                          // later: add decrement API here
+                          className="px-3 py-1 border border-gray-600 text-gray-500 cursor-not-allowed"
+                          disabled
                         >
                           -
                         </button>
 
-                        <span className="px-3">{item.items.quantity || 1}</span>
+                        <span className="px-3">{quantity}</span>
 
                         <button
                           onClick={async () => {
+                            if (!productId) return;
                             await handleIncrementCartItem({
-                              productId: item.items.productId._id,
-                              variantId: item.items.variantId || null,
+                              productId,
+                              variantId: item?.variantId || null,
                             });
-
-                            // ✅ refresh cart after update
-                            handleGetCartItems();
                           }}
                           className="px-3 py-1 border border-gray-600 hover:border-[#d4af37]"
                         >
@@ -132,9 +139,8 @@ const Cart = () => {
                       </div>
                     </div>
 
-                    {/* PRICE */}
                     <p className="text-lg font-semibold mt-5 text-[#d4af37]">
-                      ₹ {new Intl.NumberFormat("en-IN").format(itemTotal)}
+                      INR {formatPrice(itemTotal)}
                     </p>
                   </div>
                 </div>
@@ -144,7 +150,6 @@ const Cart = () => {
             <p className="text-gray-500">Your cart is empty</p>
           )}
 
-          {/* CONTINUE SHOPPING */}
           <button
             onClick={() => navigate("/")}
             className="mt-4 border border-[#d4af37] text-[#d4af37] px-6 py-3 text-sm tracking-wide rounded-lg hover:bg-[#d4af37] hover:text-black transition"
@@ -153,58 +158,45 @@ const Cart = () => {
           </button>
         </div>
 
-        {/* RIGHT */}
         <div className="bg-[#111111] border border-[#2a2a2a] rounded-xl p-8 h-fit sticky top-10">
-          {/* TITLE */}
           <h2 className="text-lg tracking-[2px] text-gray-300 mb-8 uppercase">
             The Total
           </h2>
 
-          {/* DETAILS */}
           <div className="space-y-6 text-sm">
-            {/* SUBTOTAL */}
             <div className="flex justify-between items-center text-gray-400 tracking-wide">
               <span className="uppercase text-xs">Subtotal</span>
               <span className="text-white text-base font-medium">
-                INR {new Intl.NumberFormat("en-IN").format(subtotal)}
+                INR {formatPrice(subtotal)}
               </span>
             </div>
 
-            {/* SHIPPING */}
             <div className="flex justify-between items-center text-gray-500 text-xs tracking-wide">
               <span className="uppercase">Shipping</span>
               <span>Complimentary</span>
             </div>
 
-            {/* TAX */}
             <div className="flex justify-between items-center text-gray-500 text-xs tracking-wide">
               <span className="uppercase">Duties & Taxes</span>
               <span>Included</span>
             </div>
 
-            {/* DIVIDER */}
             <div className="border-t border-[#2a2a2a] pt-6"></div>
 
-            {/* TOTAL */}
             <div className="flex justify-between items-center">
               <span className="uppercase text-sm tracking-wide text-gray-300">
                 Total
               </span>
               <span className="text-[#d4af37] text-2xl font-semibold tracking-wide">
-                INR {new Intl.NumberFormat("en-IN").format(subtotal)}
+                INR {formatPrice(subtotal)}
               </span>
             </div>
           </div>
 
-          {/* BUTTON */}
-          <button
-            onClick={handlePayment}
-            className="mt-10 w-full bg-[#d4af37] text-black py-3 text-sm tracking-[2px] uppercase rounded-md hover:opacity-90 transition"
-          >
+          <button className="mt-10 w-full bg-[#d4af37] text-black py-3 text-sm tracking-[2px] uppercase rounded-md hover:opacity-90 transition">
             Proceed to Checkout
           </button>
 
-          {/* CONTINUE */}
           <p
             onClick={() => navigate("/")}
             className="mt-6 text-center text-xs tracking-[3px] text-gray-500 hover:text-white cursor-pointer uppercase"
@@ -214,7 +206,6 @@ const Cart = () => {
         </div>
       </div>
 
-      {/* IMAGE MODAL */}
       {selectedImage && (
         <div
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"

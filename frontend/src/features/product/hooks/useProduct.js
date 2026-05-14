@@ -1,39 +1,47 @@
+import { useCallback } from "react";
+import { useDispatch } from "react-redux";
 import {
+  addProductVariant,
   createProduct,
-  getSellerProducts,
   getAllProducts,
   getProductDetails,
-  addProductVariant,
+  getSellerProducts,
 } from "../api/product.api";
-import { useDispatch } from "react-redux";
-import { setSellerProducts, setProducts } from "../state/product.slice";
+import { setProducts, setSellerProducts } from "../state/product.slice";
 
 export const useProduct = () => {
   const dispatch = useDispatch();
-  async function handleCreateProduct(formData) {
+
+  const handleCreateProduct = useCallback(async (formData) => {
     const data = await createProduct(formData);
     return data.product;
-  }
+  }, []);
 
-  async function handleGetSellerProducts() {
+  const handleGetSellerProducts = useCallback(async () => {
     const data = await getSellerProducts();
     dispatch(setSellerProducts(data.products));
     return data.products;
-  }
+  }, [dispatch]);
 
-  async function handleGetAllProducts() {
+  const handleGetAllProducts = useCallback(async () => {
     const data = await getAllProducts();
     dispatch(setProducts(data.products));
-  }
+    return data.products;
+  }, [dispatch]);
 
-  async function handleGetProductDetails(productId) {
+  const handleGetProductDetails = useCallback(async (productId) => {
     const data = await getProductDetails(productId);
     return data.product;
-  }
-  async function handleAddProductVariant(productId, newProductVariant) {
-    const data = await addProductVariant(productId, newProductVariant);
-    return data;
-  }
+  }, []);
+
+  const handleAddProductVariant = useCallback(
+    async (productId, newProductVariant) => {
+      const data = await addProductVariant(productId, newProductVariant);
+      return data;
+    },
+    [],
+  );
+
   return {
     handleCreateProduct,
     handleGetSellerProducts,

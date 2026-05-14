@@ -1,4 +1,4 @@
-import {createSlice} from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
 const cartSlice = createSlice({
   name: "cart",
@@ -20,11 +20,18 @@ const cartSlice = createSlice({
 
       state.items = state.items.map((item) => {
         if (
-          item.productId === productId &&
-          item.variantId === variantId
+          item.items.productId._id === productId &&
+          item.items.variantId === variantId
         ) {
-          return { ...item, quantity: item.quantity + 1 };
+          return {
+            ...item,
+            items: {
+              ...item.items,
+              quantity: item.items.quantity + 1,
+            },
+          };
         }
+
         return item;
       });
     },
@@ -33,16 +40,29 @@ const cartSlice = createSlice({
 
       state.items = state.items.map((item) => {
         if (
-          item.productId === productId &&
-          item.variantId === variantId
+          item.items.productId._id === productId &&
+          item.items.variantId === variantId
         ) {
-          return { ...item, quantity: item.quantity - 1 };
+          return {
+            ...item,
+            items: {
+              ...item.items,
+              quantity: item.items.quantity - 1,
+            },
+          };
         }
+
         return item;
       });
     },
   },
 });
 
-export const { addToCart, removeFromCart, setItems, incrementCartItemQuantity, decrementCartItemQuantity } = cartSlice.actions;
+export const {
+  addToCart,
+  removeFromCart,
+  setItems,
+  incrementCartItemQuantity,
+  decrementCartItemQuantity,
+} = cartSlice.actions;
 export default cartSlice.reducer;

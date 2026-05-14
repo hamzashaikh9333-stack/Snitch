@@ -2,10 +2,44 @@ import cartModel from "../models/cart.model.js";
 import productModel from "../models/product.model.js";
 import { stockOfVariant } from "../dao/product.dao.js";
 
-export const addToCart = async (req, res) => {
-  const { productId, variantId, quantity } = req.body;
+const normalizeVariantId = (variantId) => variantId || null;
 
-  // ✅ 1. Find product
+const getVariantFromProduct = (product, variantId) => {
+  if (!product || !variantId) return null;
+  return product.variants.find((v) => v._id.toString() === variantId.toString());
+};
+
+const buildCartResponse = (cart) => {
+  const items = cart.items
+    .filter((item) => item.productId)
+    .map((item) => {
+      const cartItem = item.toObject ? item.toObject({ flattenMaps: true }) : item;
+      const variantData = getVariantFromProduct(cartItem.productId, cartItem.variantId);
+      const itemPrice = cartItem.price.amount * cartItem.quantity;
+
+      return {
+        items: {
+          ...cartItem,
+          variantData,
+        },
+        itemPrice,
+      };
+    });
+
+  return {
+    _id: cart._id,
+    userId: cart.userId,
+    total: items.reduce((total, item) => total + item.itemPrice, 0),
+    currency: items[0]?.items?.price?.currency || "INR",
+    items,
+  };
+};
+
+export const addToCart = async (req, res) => {
+  const { productId } = req.body;
+  const variantId = normalizeVariantId(req.body.variantId);
+  const requestedQuantity = Number(req.body.quantity);
+
   let product;
 
   if (variantId) {
@@ -24,9 +58,8 @@ export const addToCart = async (req, res) => {
     });
   }
 
-  // ✅ 2. Get stock
   const stock = variantId
-    ? product.variants.find((v) => v._id.toString() === variantId)?.stock
+    ? getVariantFromProduct(product, variantId)?.stock
     : product.stock;
 
   if (stock === undefined) {
@@ -36,33 +69,29 @@ export const addToCart = async (req, res) => {
     });
   }
 
-  // ✅ 3. Get or create cart
   let cart = await cartModel.findOne({ userId: req.user._id });
 
   if (!cart) {
     cart = await cartModel.create({ userId: req.user._id, items: [] });
   }
 
-  // ✅ 4. Find existing item (ONLY ONCE)
   const existingItem = cart.items.find(
     (item) =>
       item.productId.toString() === productId &&
-      (item.variantId?.toString() || null) === (variantId || null),
+      (item.variantId?.toString() || null) === (variantId?.toString() || null),
   );
 
-  // ✅ 5. If exists → update
   if (existingItem) {
-    if (existingItem.quantity + quantity > stock) {
+    if (existingItem.quantity + requestedQuantity > stock) {
       return res.status(400).json({
         message: `Only ${stock} items left and you already have ${existingItem.quantity}`,
         success: false,
       });
     }
 
-    existingItem.quantity += quantity;
+    existingItem.quantity += requestedQuantity;
   } else {
-    // ✅ 6. If new → validate stock
-    if (quantity > stock) {
+    if (requestedQuantity > stock) {
       return res.status(400).json({
         message: `Only ${stock} items left in stock`,
         success: false,
@@ -70,18 +99,17 @@ export const addToCart = async (req, res) => {
     }
 
     const price = variantId
-      ? product.variants.find((v) => v._id.toString() === variantId)?.price
+      ? getVariantFromProduct(product, variantId)?.price
       : product.price;
 
     cart.items.push({
       productId,
-      variantId: variantId || null,
-      quantity,
+      variantId,
+      quantity: requestedQuantity,
       price,
     });
   }
 
-  // ✅ 7. Save cart
   await cart.save();
 
   return res.status(200).json({
@@ -91,104 +119,26 @@ export const addToCart = async (req, res) => {
 };
 
 export const getCart = async (req, res) => {
-  let cart = await cartModel.aggregate([
-    { $unwind: { path: "$items" } },
-    {
-      $lookup: {
-        from: "products",
-        localField: "items.productId",
-        foreignField: "_id",
-        as: "items.productId",
-      },
-    },
-    { $unwind: { path: "$items.productId" } },
-    {
-      $unwind: {
-        path: "$items.productId.variants",
-      },
-    },
-    {
-      $match: {
-        $expr: {
-          $or: [
-            {
-              $eq: ["$items.variantId", "$items.productId.variants._id"],
-            },
-            { $eq: ["$items.variantId", null] },
-          ],
-        },
-      },
-    },
-    {
-      $addFields: {
-        itemPrice: {
-          $multiply: [
-            "$items.quantity",
-            "$items.productId.variants.price.amount",
-          ],
-        },
-      },
-    },
-    {
-      $group: {
-        _id: "$_id",
-        total: { $sum: "$itemPrice" },
-        items: {
-          $push: {
-            items: "$items",
-            itemPrice: "$itemPrice",
-          },
-        },
-      },
-    },
-    {
-      $addFields: {
-        currency: {
-          $first: "$items.items.price.currency",
-        },
-      },
-    },
-  ]);
+  let cart = await cartModel
+    .findOne({ userId: req.user._id })
+    .populate("items.productId");
 
-  if (!cart || cart.length === 0) {
-  cart = await cartModel.create({ userId: req.user._id });
-}
-
-const cartData = cart[0];
-
-  
-  const updatedItems = cartData.items.map((item) => {
-    let variantData = null;
-
-    if (item.variantId) {
-      variantData = item.productId.variants.find(
-        (v) => v._id.toString() === item.variantId.toString(),
-      );
-    }
-
-    return {
-      ...item,
-      variantData, // ✅ attach full variant
-    };
-  });
-
-  cart = {
-    ...cart._doc,
-    items: updatedItems,
-  };
+  if (!cart) {
+    cart = await cartModel.create({ userId: req.user._id, items: [] });
+    await cart.populate("items.productId");
+  }
 
   res.status(200).json({
     message: "Cart fetched successfully",
     success: true,
-    cart,
+    cart: buildCartResponse(cart),
   });
 };
 
 export const incrementCartItemQuantity = async (req, res) => {
   const { productId } = req.params;
-  const { variantId } = req.body;
+  const variantId = normalizeVariantId(req.body.variantId);
 
-  // ✅ 1. Find product
   let product;
 
   if (variantId) {
@@ -207,39 +157,25 @@ export const incrementCartItemQuantity = async (req, res) => {
     });
   }
 
-  // ✅ 2. Get cart
-  const cart = await cartModel.findOne({ userId: req.user._id });
+  let cart = await cartModel.findOne({ userId: req.user._id });
 
   if (!cart) {
-    return res.status(404).json({
-      message: "Cart not found",
-      success: false,
-    });
+    cart = await cartModel.create({ userId: req.user._id, items: [] });
   }
 
-  // ✅ 3. Get stock
   const stock = variantId
     ? await stockOfVariant(productId, variantId)
     : product.stock;
 
-  // ✅ 4. Find item in cart
   const item = cart.items.find((item) => {
-    if (variantId) {
-      return (
-        item.productId.toString() === productId &&
-        item.variantId?.toString() === variantId
-      );
-    } else {
-      return (
-        item.productId.toString() === productId &&
-        (item.variantId === null || item.variantId === undefined)
-      );
-    }
+    return (
+      item.productId.toString() === productId &&
+      (item.variantId?.toString() || null) === (variantId?.toString() || null)
+    );
   });
 
   const itemQuantityInCart = item?.quantity || 0;
 
-  // ✅ 5. Stock check
   if (itemQuantityInCart + 1 > stock) {
     return res.status(400).json({
       message: `Only ${stock} items left and you already have ${itemQuantityInCart}`,
@@ -247,36 +183,25 @@ export const incrementCartItemQuantity = async (req, res) => {
     });
   }
 
-  // ✅ 6. Try increment
   const updateResult = await cartModel.updateOne(
     {
       userId: req.user._id,
-      "items.productId": productId,
-      ...(variantId
-        ? { "items.variantId": variantId }
-        : { "items.variantId": null }),
+      items: {
+        $elemMatch: {
+          productId,
+          variantId,
+        },
+      },
     },
     {
       $inc: { "items.$.quantity": 1 },
     },
   );
 
-  // ✅ 7. If not found → create new item
   if (updateResult.modifiedCount === 0) {
-    let price;
-
-    if (variantId) {
-      const variant = product.variants.id(variantId);
-      if (!variant) {
-        return res.status(404).json({
-          message: "Variant not found",
-          success: false,
-        });
-      }
-      price = variant.price;
-    } else {
-      price = product.price;
-    }
+    const price = variantId
+      ? getVariantFromProduct(product, variantId)?.price
+      : product.price;
 
     await cartModel.findOneAndUpdate(
       { userId: req.user._id },
@@ -284,7 +209,7 @@ export const incrementCartItemQuantity = async (req, res) => {
         $push: {
           items: {
             productId,
-            variantId: variantId || null,
+            variantId,
             quantity: 1,
             price,
           },
@@ -299,7 +224,6 @@ export const incrementCartItemQuantity = async (req, res) => {
     });
   }
 
-  // ✅ 8. If increment worked
   return res.status(200).json({
     message: "Cart item quantity incremented",
     success: true,

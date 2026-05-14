@@ -6,11 +6,13 @@ export async function createProduct(req, res) {
     req.body;
 
   const sizesArray = size ? size.split(",").map((s) => s.trim()) : [];
+  const productStock = Number(stock || 10);
+  const productPrice = Number(priceAmount);
 
   const seller = req.user;
 
   const images = await Promise.all(
-    req.files.map(async (file) => {
+    (req.files || []).map(async (file) => {
       return await uploadFile({
         buffer: file.buffer,
         fileName: file.originalname,
@@ -21,9 +23,9 @@ export async function createProduct(req, res) {
   // 🔥 CREATE VARIANTS FROM SIZES
   const variants = sizesArray.map((s) => ({
     attributes: { size: s },
-    stock: stock || 10,
+    stock: productStock,
     price: {
-      amount: priceAmount,
+      amount: productPrice,
       currency: priceCurrency || "INR",
     },
   }));
@@ -32,12 +34,12 @@ export async function createProduct(req, res) {
     title,
     description,
     price: {
-      amount: priceAmount,
+      amount: productPrice,
       currency: priceCurrency || "INR",
     },
     images,
     seller: seller._id,
-    stock: variants.length > 0 ? 0 : stock || 10,
+    stock: variants.length > 0 ? 0 : productStock,
     variants,
   });
 
@@ -90,7 +92,6 @@ export async function addProductVariant(req, res) {
     _id: productId,
     seller: req.user._id,
   });
-  console.log(product);
 
   if (!product) {
     return res.status(404).json({
@@ -101,7 +102,7 @@ export async function addProductVariant(req, res) {
 
   const files = req.files;
   const images = [];
-  if (files || files.length !== 0) {
+  if (files && files.length !== 0) {
     (
       await Promise.all(
         files.map(async (file) => {
@@ -124,9 +125,8 @@ export async function addProductVariant(req, res) {
   } else {
     price = product.price.amount;
   }
-  const stock = req.body.stock;
+  const stock = Number(req.body.stock || 0);
   const attributes = JSON.parse(req.body.attributes || "{}");
-  console.log(price, stock, attributes);
 
   product.variants.push({
     images,

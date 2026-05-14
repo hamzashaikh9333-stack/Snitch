@@ -42,7 +42,6 @@ const SellerProductDetails = () => {
   const [isAddingVariant, setIsAddingVariant] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [activeImages, setActiveImages] = useState([]);
 
   const [previewImages, setPreviewImages] = useState([]);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -63,34 +62,24 @@ const SellerProductDetails = () => {
   const { productId } = useParams();
   const { handleGetProductDetails, handleAddProductVariant } = useProduct();
 
-  async function fetchProductDetails() {
-    setLoading(true);
-    try {
-      const data = await handleGetProductDetails(productId);
-      console.log(data);
-      const prod = data?.product || data;
-      setProduct(prod);
-      // Initialize variants locally
-      if (prod?.variants) {
-        setLocalVariants(prod.variants);
+  useEffect(() => {
+    async function fetchProductDetails() {
+      setLoading(true);
+      try {
+        const data = await handleGetProductDetails(productId);
+        const prod = data?.product || data;
+        setProduct(prod);
+        setLocalVariants(prod?.variants || []);
+        setCurrentImageIndex(0);
+      } catch (error) {
+        console.error("Failed to fetch product details", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch product details", error);
-    } finally {
-      setLoading(false);
     }
-  }
 
-  useEffect(() => {
     fetchProductDetails();
-  }, [productId]);
-
-  useEffect(() => {
-    if (product?.images) {
-      setActiveImages(product.images);
-      setCurrentImageIndex(0);
-    }
-  }, [product]);
+  }, [handleGetProductDetails, productId]);
 
   // Handlers for modifying existing variant stock natively
   const handleStockChange = (index, newStock) => {
@@ -229,6 +218,8 @@ const SellerProductDetails = () => {
       </div>
     );
   }
+
+  const activeImages = product.images || [];
 
   return (
     <div className="min-h-screen bg-[#fbf9f6] text-[#1b1c1a] font-sans pb-24">
