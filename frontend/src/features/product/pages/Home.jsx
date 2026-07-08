@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import NavCart from "../../cart/components/NavCart";
 import { useProduct } from "../hooks/useProduct";
+import HomeSkeleton from "../components/HomeSkeleton";
 
 const Home = () => {
   const products = useSelector((state) => state.product.products);
@@ -10,12 +11,21 @@ const Home = () => {
 
   const [selectedVariant, setSelectedVariant] = useState({});
   const [heroIndex, setHeroIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
   const productsRef = useRef(null);
 
   useEffect(() => {
-    handleGetAllProducts();
+    const fetchProducts = async () => {
+      setLoading(true);
+
+      await handleGetAllProducts();
+
+      setLoading(false);
+    };
+
+    fetchProducts();
   }, [handleGetAllProducts]);
 
   const scrollToProducts = () => {
@@ -32,7 +42,13 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [products]);
 
-  const heroImage = products?.[heroIndex]?.images?.[0]?.url || "";
+  const heroImage = products?.[heroIndex]?.images?.[0]?.url
+    ? `${products[heroIndex].images[0].url}?tr=w-1400,q-80,f-auto`
+    : "";
+
+  if (loading) {
+    return <HomeSkeleton />;
+  }
 
   return (
     <div className="bg-white text-black min-h-screen">
@@ -84,10 +100,11 @@ const Home = () => {
             >
               <div className="relative bg-gray-100">
                 <img
+                  loading="lazy"
                   src={
-                    selectedVariant[product._id]?.images?.[0]?.url ||
-                    product.images?.[0]?.url ||
-                    ""
+                    (selectedVariant[product._id]?.images?.[0]?.url ||
+                      product.images?.[0]?.url ||
+                      "") + "?tr=w-600,q-80,f-auto"
                   }
                   alt={product.title}
                   className="w-full h-[320px] object-contain transition duration-500 group-hover:opacity-90"
